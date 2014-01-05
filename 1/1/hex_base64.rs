@@ -9,25 +9,25 @@ use extra::hex::{FromHex, ToHex};
 use extra::base64::{STANDARD, FromBase64, ToBase64};
 
 
-fn hex_to_bytes(hex: ~str) -> ~[u8] {
+fn hex_to_bytes(hex: &str) -> ~[u8] {
     match hex.from_hex() {
         Ok(bytes) => bytes,
         Err(error) => fail!("Error converting from Hex: {}", error)
     }
 }
 
-fn bytes_to_base64(bytes: ~[u8]) -> ~str {
+fn bytes_to_base64(bytes: &[u8]) -> ~str {
     bytes.to_base64(STANDARD)
 }
 
-fn base64_to_bytes(base64: ~str) -> ~[u8] {
+fn base64_to_bytes(base64: &str) -> ~[u8] {
     match base64.from_base64() {
         Ok(bytes) => bytes,
         Err(error) => fail!("Error converting from Base64: {}", error)
     }
 }
 
-fn bytes_to_hex(bytes: ~[u8]) -> ~str {
+fn bytes_to_hex(bytes: &[u8]) -> ~str {
     bytes.to_hex()
 }
 
@@ -54,6 +54,6 @@ fn test_base64_hex() {
                 706f69736f6e6f7573206d757368726f6f6d";
     let base64 = ~"SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3V\
                    zIG11c2hyb29t";
-    assert_eq!(bytes_to_base64(hex_to_bytes(hex.clone())), base64);
+    assert_eq!(bytes_to_base64(hex_to_bytes(hex)), base64);
     assert_eq!(bytes_to_hex(base64_to_bytes(base64)), hex);
 }

@@ -7,7 +7,7 @@ extern mod extra;
 
 use extra::hex::{FromHex, ToHex};
 
-fn xor_buffers(s1: ~[u8], s2: ~[u8]) -> ~[u8] {
+fn xor_buffers(s1: &[u8], s2: &[u8]) -> ~[u8] {
     if s1.len() != s2.len() {
         fail!("Not equal length of input buffers")
     }

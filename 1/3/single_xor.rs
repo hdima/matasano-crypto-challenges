@@ -6,6 +6,8 @@
 // TODO:
 //  - Tests
 //  - Extract all main functions to a library
+//  - Can we use letters frequency in is_english() function? Or just
+//    implement trigram algorithm?
 
 extern mod extra;
 
@@ -17,7 +19,12 @@ static ENGLISH_CHARS_BY_FREQ: &'static[u8] = bytes!(
 
 enum DecryptionResult {
     Found(u8, ~[u8]),
-    NotFound
+    NoKeyFound
+}
+
+struct ByteStat {
+    byte: u8,
+    num: uint
 }
 
 // XOR buffer with the key and return the result
@@ -30,16 +37,14 @@ fn get_most_freq_char(buffer: &[u8]) -> u8 {
     if buffer.is_empty() {
         fail!("Buffer is empty");
     }
-    let mut map = vec::from_elem(256, 0u);
+    let mut chars = vec::from_fn(256, |i| ByteStat{byte: i as u8, num: 0});
     for &c in buffer.iter() {
-        map[c] += 1u;
+        chars[c].num += 1;
     }
-    let mut numchars = map.iter().enumerate().map(|(c, &n)| (n, c as u8));
-    let mut chars: ~[(uint, u8)] = numchars.collect();
     // Reverse sorting
-    chars.sort_by(|f, s| s.cmp(f));
+    chars.sort_by(|first, second| second.num.cmp(&first.num));
     // Most frequent character is the first one now
-    chars[0].n1()
+    chars[0].byte
 }
 
 // Is text in the buffer looks like an English text?
@@ -77,7 +82,7 @@ fn decrypt(buffer: &[u8]) -> DecryptionResult {
             return Found(key, decrypted);
         }
     }
-    NotFound
+    NoKeyFound
 }
 
 #[cfg(not(test))]
@@ -95,6 +100,6 @@ fn main() {
                 println!("Key        => {}", key);
                 println!("Decrypted  => {}", str::from_utf8(decrypted));
             }
-        NotFound => fail!("No decryption key found")
+        NoKeyFound => fail!("No decryption key found")
     }
 }

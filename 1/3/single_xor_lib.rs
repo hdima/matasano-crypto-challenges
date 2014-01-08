@@ -5,13 +5,12 @@
 
 // TODO:
 //  - Tests
-//  - Can we use letters frequency in is_english() function? Or just
-//    implement trigram algorithm?
 
 #[crate_id="single_xor_lib#0.1"];
 #[crate_type="lib"];
 
 use std::vec;
+use std::str;
 
 static ENGLISH_CHARS_BY_FREQ: &'static[u8] = bytes!(
     " eEtTaAiInNoOsSrRlLdDhHcCuUmMfFpPyYgGwWvVbBkKxXjJqQzZ");
@@ -48,22 +47,26 @@ fn get_most_freq_char(buffer: &[u8]) -> u8 {
 
 // Is text in the buffer looks like an English text?
 fn is_english(buffer: &[u8]) -> bool {
-    // Here we just check that number of non letters in the text is lower than
-    // 30%. More robust implementation can use most common English language
-    // trigrams.
-    let mut allowed = (buffer.len() * 30u) / 100u;
-    for &c in buffer.iter() {
-        match c as char {
-            'a'..'z' | 'A'..'Z' => (),
-            _ => {
-                allowed -= 1u;
-                if allowed <= 0 {
-                    return false;
-                }
+    // FIXME: Example implementation with trigrams. Should be tuned because it
+    // can also catch a gibberish with a correct trigram inside.
+    // Also strings with mixed case should be considered.
+    // Can we also use letters frequency?
+    let string = match str::from_utf8_opt(buffer) {
+        Some(string) => string,
+        None => return false
+    };
+    let len = string.char_len() - 3;
+    if len >= 0 {
+        for i in range(0, len) {
+            match string.slice(i, i + 3) {
+                &"the" | &"and" | &"tha" | &"ent" | &"ing" | &"ion"
+                | &"tio" | &"for" | &"nde" | &"has" | &"nce" | &"edt"
+                | &"tis" | &"oft" | &"sth" | &"men" => return true,
+                _ => ()
             }
         }
     }
-    true
+    false
 }
 
 // Try to decrypt encrypted text in the buffer

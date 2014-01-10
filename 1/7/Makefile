@@ -1,11 +1,11 @@
-aes_ecb: aes_ecb.rs
+aes_ecb_decrypter: aes_ecb_decrypter.rs
 	rustc $<
 
-test: aes_ecb.rs
+test: aes_ecb_decrypter.rs
 	rustc --test -o test $<
 	./test
 
 clean:
-	rm -f test aes_ecb
+	rm -f test aes_ecb_decrypter
 
 .PHONY: test clean

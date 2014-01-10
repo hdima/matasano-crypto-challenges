@@ -6,6 +6,7 @@
 extern mod extra;
 
 // TODO: Do we have a garbage at the end of the decrypted text?
+// TODO: Call simpler decryption OpenSSL interface
 // TODO: Refactor decryption as a type
 
 #[cfg(not(test))]

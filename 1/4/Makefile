@@ -4,7 +4,7 @@ find_single_xor: find_single_xor.rs libsingle_xor_lib-*.so
 libsingle_xor_lib-*.so: ../3/single_xor_lib.rs
 	rustc --out-dir . $<
 
-test: find_single_xor.rs libsignle_xor_lib-*.so
+test: find_single_xor.rs libsingle_xor_lib-*.so
 	rustc --test -L . -o test $<
 	./test
 

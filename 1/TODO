@@ -1,0 +1,4 @@
+- Fix English text checking for task 4
+- Task 6 (break repeating-key XOR)
+- Clean up task 7 (AES 128 ECB decryption)
+- Task 8 (Detecting ECB)

@@ -5,10 +5,6 @@
 
 extern mod extra;
 
-// TODO: Do we have a garbage at the end of the decrypted text?
-// TODO: Call simpler decryption OpenSSL interface
-// TODO: Refactor decryption as a type
-
 #[cfg(not(test))]
 use std::path::Path;
 #[cfg(not(test))]
@@ -16,7 +12,7 @@ use std::io::fs::File;
 #[cfg(not(test))]
 use std::str;
 
-use std::libc::{c_int, c_uint};
+use std::libc::c_int;
 use std::libc;
 use std::vec;
 
@@ -24,10 +20,9 @@ use std::vec;
 use extra::base64::FromBase64;
 
 #[allow(non_camel_case_types)]
-pub type EVP_CIPHER_CTX = *libc::c_void;
-
+type EVP_CIPHER_CTX = *libc::c_void;
 #[allow(non_camel_case_types)]
-pub type EVP_CIPHER = *libc::c_void;
+type EVP_CIPHER = *libc::c_void;
 
 #[link(name="crypto")]
 extern {
@@ -37,11 +32,10 @@ extern {
 
     fn EVP_aes_128_ecb() -> EVP_CIPHER;
 
-    fn EVP_CipherInit(ctx: EVP_CIPHER_CTX, evp: EVP_CIPHER,
-                      key: *u8, iv: *u8, mode: c_int);
-    fn EVP_CipherUpdate(ctx: EVP_CIPHER_CTX, outbuf: *mut u8,
-                        outlen: &mut c_uint, inbuf: *u8, inlen: c_int);
-    fn EVP_CipherFinal(ctx: EVP_CIPHER_CTX, res: *mut u8, len: &mut c_int);
+    fn EVP_DecryptInit(ctx: EVP_CIPHER_CTX, evp: EVP_CIPHER, key: *u8, iv: *u8);
+    fn EVP_DecryptUpdate(ctx: EVP_CIPHER_CTX, outbuf: *mut u8,
+                         outlen: &mut c_int, inbuf: *u8, inlen: c_int);
+    fn EVP_DecryptFinal(ctx: EVP_CIPHER_CTX, res: *mut u8, len: &mut c_int);
 }
 
 fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> ~[u8] {
@@ -56,21 +50,20 @@ fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> ~[u8] {
         let ctx = EVP_CIPHER_CTX_new();
         let evp = EVP_aes_128_ecb();
 
-        EVP_CipherInit(ctx, evp, key.as_ptr(), iv.as_ptr(), 0 as c_int);
+        EVP_DecryptInit(ctx, evp, key.as_ptr(), iv.as_ptr());
         EVP_CIPHER_CTX_set_padding(ctx, 0 as c_int);
 
-        let mut reslen = (encrypted.len() + blocksize) as u32;
-        let mut res = vec::from_elem(reslen as uint, 0u8);
-        EVP_CipherUpdate(ctx, res.as_mut_ptr(), &mut reslen,
-            encrypted.as_ptr(), encrypted.len() as c_int);
-        res.truncate(reslen as uint);
+        let mut bodylen = (encrypted.len() + blocksize) as c_int;
+        let mut body = vec::from_elem(bodylen as uint, 0u8);
+        EVP_DecryptUpdate(ctx, body.as_mut_ptr(), &mut bodylen,
+                          encrypted.as_ptr(), encrypted.len() as c_int);
 
-        let mut reslen2 = blocksize as c_int;
-        let mut res2 = vec::from_elem(blocksize as uint, 0u8);
-        EVP_CipherFinal(ctx, res2.as_mut_ptr(), &mut reslen2);
+        let mut taillen = blocksize as c_int;
+        let mut tail = vec::from_elem(taillen as uint, 0u8);
+        EVP_DecryptFinal(ctx, tail.as_mut_ptr(), &mut taillen);
         EVP_CIPHER_CTX_free(ctx);
-        res2.truncate(reslen2 as uint);
-        res + res2
+
+        body.slice_to(bodylen as uint) + tail.slice_to(taillen as uint)
     }
 }
 

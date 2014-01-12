@@ -47,6 +47,9 @@ fn get_most_freq_char(buffer: &[u8]) -> u8 {
 
 // Is text in the buffer looks like an English text?
 fn is_english(buffer: &[u8]) -> bool {
+    // TODO: We can't use trigrams or bigrams here because this library
+    // also used to decrypt repeating key XOR in which case it's trying
+    // to guess slices of text.
     // FIXME: Example implementation with trigrams. Should be tuned because it
     // can also catch a gibberish with a correct trigram inside.
     // Also strings with mixed case should be considered.

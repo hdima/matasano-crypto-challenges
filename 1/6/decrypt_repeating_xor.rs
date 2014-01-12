@@ -13,13 +13,21 @@ use std::path::Path;
 use std::io::fs::File;
 #[cfg(not(test))]
 use std::str;
+#[cfg(not(test))]
+use std::vec;
 
 use std::iter::AdditiveIterator;
 
 #[cfg(not(test))]
 use extra::base64::FromBase64;
 
-use single_xor_lib::{decrypt, Found, NotFound};
+use single_xor_lib::decrypt;
+
+// TODO: Rename it or rename the corresponding type in single_xor_lib
+enum DecryptionResult {
+    Found(~[u8], ~[u8]),
+    NotFound
+}
 
 /*
  * Calculate Hamming distance between two binary vectors.
@@ -55,7 +63,7 @@ fn guess_keysize(buffer: &[u8]) -> Option<uint> {
     let mut min_dist = (max_key_size * 8) as f32;
     let mut keysize = None;
 
-    for s in range(2, max_key_size) {
+    for s in range(2, max_key_size + 1) {
         let size = s as uint;
         // We're not trying too hard here
         if len < size * 4 {
@@ -78,24 +86,42 @@ fn guess_keysize(buffer: &[u8]) -> Option<uint> {
 }
 
 #[cfg(not(test))]
-fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> Option<~[u8]> {
-    // TODO:
-    //  - Split buffer to single key buffers
-    //  - Find keys and decrypt every single key buffer
-    //  - Compile bytes of key and decryped text
-    //  - Return key and the decrypted text
+fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> DecryptionResult {
+    let len = encrypted.len();
+    let line_len = (len / keysize) + 1;
+    let mut buffers: ~[~[u8]] = vec::from_fn(keysize,
+        |_| -> ~[u8] vec::with_capacity(line_len));
+    for block in encrypted.chunks(keysize) {
+        for (i, &c) in block.iter().enumerate() {
+            buffers[i].push(c);
+        }
+    }
+    let mut key: ~[u8] = vec::with_capacity(keysize);
+    let mut decrypted: ~[u8] = vec::from_elem(len, 0u8);
+    for (i, block) in buffers.iter().enumerate() {
+        match decrypt(*block) {
+            single_xor_lib::Found(k, text) => {
+                key.push(k);
+                for (j, &c) in text.iter().enumerate() {
+                    decrypted[i + j * keysize] = c;
+                }
+            },
+            single_xor_lib::NotFound => return NotFound
+        }
+    }
+    Found(key, decrypted)
 }
 
 #[cfg(not(test))]
-fn decrypt_repeating_xor(encrypted: &[u8]) -> Option<~[u8]> {
+fn decrypt_repeating_xor(encrypted: &[u8]) -> DecryptionResult {
     match guess_keysize(encrypted) {
         Some(keysize) => decrypt_with_keysize(encrypted, keysize),
-        None => return None
+        None => return NotFound
     }
 }
 
 #[cfg(not(test))]
-fn decrypt_repeating_xor_file(mut file: File) -> Option<~[u8]> {
+fn decrypt_repeating_xor_file(mut file: File) -> DecryptionResult {
     let data = file.read_to_end();
     let encrypted = str::from_utf8(data).from_base64().unwrap();
     decrypt_repeating_xor(encrypted)
@@ -109,8 +135,9 @@ fn main() {
         None => fail!("Unable to open buffer.txt")
     };
     match decrypted {
-        Some(text) => println!("Decrypted => {}", str::from_utf8(decrypted)),
-        None => println!("ERROR: No key found")
+        Found(key, text) => println!("Decrypted => {}, {}",
+            str::from_utf8(key), str::from_utf8(text)),
+        NotFound => println!("ERROR: No key found")
     }
 }
 

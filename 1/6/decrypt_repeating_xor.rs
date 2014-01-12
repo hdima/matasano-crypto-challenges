@@ -1,7 +1,7 @@
-// Repeating-key XOR decrypter
-//
-// Dmitry Vasiliev <dima@hlabs.org>
-//
+/* Repeating-key XOR decrypter
+ *
+ * Dmitry Vasiliev <dima@hlabs.org>
+ */
 
 extern mod single_xor_lib;
 
@@ -21,6 +21,10 @@ use extra::base64::FromBase64;
 
 use single_xor_lib::{decrypt, Found, NotFound};
 
+/*
+ * Calculate Hamming distance between two binary vectors.
+ * If vectors have different lengths the smallest length will be used.
+ */
 fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
     static n_bits: [u8, ..256] =
             [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3,
@@ -35,25 +39,37 @@ fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
              4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6,
              5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 4, 5,
              5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8];
+    // Iteration will stop once one of the iterators will stop
     let iter = s1.iter().zip(s2.iter());
     iter.map(|(&c1, &c2)| -> uint n_bits[c1 ^ c2] as uint).sum()
 }
 
+/*
+ * Guess possible key size for the binary buffer
+ */
 fn guess_keysize(buffer: &[u8]) -> Option<uint> {
+    static max_key_size: uint = 50;
+
     let len = buffer.len();
-    let mut min_dist = -1f32;
+    // Set to maximal possible unnormalized Hamming distance
+    let mut min_dist = (max_key_size * 8) as f32;
     let mut keysize = None;
-    for s in range(2, 50) {
+
+    for s in range(2, max_key_size) {
         let size = s as uint;
+        // We're not trying too hard here
         if len < size * 4 {
             break;
         }
+        // Calculate average Hamming distance between two pairs of consecutive
+        // parts of encrypted text of the expected size
         let dist1 = hamming_distance(buffer.slice(0, size),
                                      buffer.slice(size, size * 2));
         let dist2 = hamming_distance(buffer.slice(size * 2, size * 3),
                                      buffer.slice(size * 3, size * 4));
         let dist: f32 = (dist1 + dist2) as f32 / (2 * size) as f32;
-        if min_dist < 0f32 || dist < min_dist {
+        // Save the new key size if Hamming distance is lower than the old one
+        if dist < min_dist {
             min_dist = dist;
             keysize = Some(size);
         }

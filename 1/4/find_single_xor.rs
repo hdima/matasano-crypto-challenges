@@ -1,7 +1,7 @@
-// Find a string encrypted with single-character XOR cipher
-//
-// Dmitry Vasiliev <dima@hlabs.org>
-//
+/* Find a string encrypted with single-character XOR cipher
+ *
+ * Dmitry Vasiliev <dima@hlabs.org>
+ */
 
 extern mod single_xor_lib;
 
@@ -18,7 +18,6 @@ fn find_encrypted(file: File) {
 
     let mut reader = BufferedReader::new(file);
     for line in reader.lines() {
-        // TODO: Skip invalid hex encoded lines
         let encrypted = line.from_hex().unwrap();
         match decrypt(encrypted) {
             Found(key, decrypted) => {

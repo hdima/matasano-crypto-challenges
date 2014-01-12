@@ -10,7 +10,6 @@
 #[crate_type="lib"];
 
 use std::vec;
-use std::str;
 
 static ENGLISH_CHARS_BY_FREQ: &'static[u8] = bytes!(
     " eEtTaAiInNoOsSrRlLdDhHcCuUmMfFpPyYgGwWvVbBkKxXjJqQzZ");
@@ -50,26 +49,22 @@ fn is_english(buffer: &[u8]) -> bool {
     // TODO: We can't use trigrams or bigrams here because this library
     // also used to decrypt repeating key XOR in which case it's trying
     // to guess slices of text.
-    // FIXME: Example implementation with trigrams. Should be tuned because it
-    // can also catch a gibberish with a correct trigram inside.
-    // Also strings with mixed case should be considered.
-    // Can we also use letters frequency?
-    let string = match str::from_utf8_opt(buffer) {
-        Some(string) => string,
-        None => return false
-    };
-    let len = string.char_len() - 3;
-    if len >= 0 {
-        for i in range(0, len) {
-            match string.slice(i, i + 3) {
-                &"the" | &"and" | &"tha" | &"ent" | &"ing" | &"ion"
-                | &"tio" | &"for" | &"nde" | &"has" | &"nce" | &"edt"
-                | &"tis" | &"oft" | &"sth" | &"men" => return true,
-                _ => ()
+    // TODO: Maybe add more allowed characters and tweak percentage
+    let mut allowed = (buffer.len() * 7u) / 100u;
+    for &c in buffer.iter() {
+        match c as char {
+            'a'..'z' | 'A'..'Z' | '0'..'9' => (),
+            ' ' | '.' | ',' | '!' | '?' | '\'' | '-' | '"' => (),
+            '\n' | '\r' | '\t' => (),
+            _ => {
+                allowed -= 1u;
+                if allowed <= 0 {
+                    return false;
+                }
             }
         }
     }
-    false
+    true
 }
 
 // Try to decrypt encrypted text in the buffer

@@ -13,7 +13,6 @@ use std::path::Path;
 use std::io::fs::File;
 #[cfg(not(test))]
 use std::str;
-#[cfg(not(test))]
 use std::vec;
 
 use std::iter::AdditiveIterator;
@@ -21,9 +20,11 @@ use std::iter::AdditiveIterator;
 #[cfg(not(test))]
 use extra::base64::FromBase64;
 
+#[cfg(not(test))]
 use single_xor_lib::decrypt;
 
 // TODO: Rename it or rename the corresponding type in single_xor_lib
+#[cfg(not(test))]
 enum DecryptionResult {
     Found(~[u8], ~[u8]),
     NotFound
@@ -55,34 +56,43 @@ fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
 /*
  * Guess possible key size for the binary buffer
  */
-fn guess_keysize(buffer: &[u8]) -> Option<uint> {
+fn guess_keysize(buffer: &[u8]) -> ~[uint] {
     static max_key_size: uint = 50;
 
     let len = buffer.len();
-    // Set to maximal possible unnormalized Hamming distance
-    let mut min_dist = (max_key_size * 8) as f32;
-    let mut keysize = None;
+    let mut keysizes = vec::with_capacity(max_key_size - 2);
 
     for s in range(2, max_key_size + 1) {
         let size = s as uint;
         // We're not trying too hard here
+        // TODO: Calculate max value outside of the loop and remove this check
         if len < size * 4 {
             break;
         }
-        // Calculate average Hamming distance between two pairs of consecutive
-        // parts of encrypted text of the expected size
-        let dist1 = hamming_distance(buffer.slice(0, size),
-                                     buffer.slice(size, size * 2));
-        let dist2 = hamming_distance(buffer.slice(size * 2, size * 3),
-                                     buffer.slice(size * 3, size * 4));
-        let dist: f32 = (dist1 + dist2) as f32 / (2 * size) as f32;
-        // Save the new key size if Hamming distance is lower than the old one
-        if dist < min_dist {
-            min_dist = dist;
-            keysize = Some(size);
-        }
+        // Calculate average Hamming distance between four pairs of encrypted
+        // text
+        let d1 = hamming_distance(buffer.slice(0, size),
+                                  buffer.slice(size, size * 2));
+        let d2 = hamming_distance(buffer.slice(size, size * 2),
+                                  buffer.slice(size * 2, size * 3));
+        let d3 = hamming_distance(buffer.slice(0, size),
+                                  buffer.slice(size * 3, size * 4));
+        let d4 = hamming_distance(buffer.slice(size * 2, size * 3),
+                                  buffer.slice(size * 3, size * 4));
+        let dist: f32 = (d1 + d2 + d3 + d4) as f32 / (4 * size) as f32;
+        keysizes.push((dist, size));
     }
-    keysize
+    // TODO: Add TotalOrd implementation for f32?
+    keysizes.sort_by(|&(d1, _), &(d2, _)| {
+            if d1 > d2 {
+                Greater
+            } else if d1 < d2 {
+                Less
+            } else {
+                Equal
+            }
+        });
+    keysizes.iter().map(|&(_, s)| s).collect()
 }
 
 #[cfg(not(test))]
@@ -114,10 +124,21 @@ fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> DecryptionResult {
 
 #[cfg(not(test))]
 fn decrypt_repeating_xor(encrypted: &[u8]) -> DecryptionResult {
+    // TODO: It seems we need to try few keysizes here
     match guess_keysize(encrypted) {
-        Some(keysize) => decrypt_with_keysize(encrypted, keysize),
-        None => return NotFound
+        [] => return NotFound,
+        // TODO: Key size is 29, key: "Terminator X"
+        keysizes => {
+            for &keysize in keysizes.iter() {
+                let found = decrypt_with_keysize(encrypted, keysize);
+                match found {
+                    Found(..) => return found,
+                    NotFound => ()
+                }
+            }
+        }
     }
+    NotFound
 }
 
 #[cfg(not(test))]
@@ -135,7 +156,9 @@ fn main() {
         None => fail!("Unable to open buffer.txt")
     };
     match decrypted {
-        Found(key, text) => println!("Decrypted => {}, {}",
+        Found(key, text) => println!(
+            "Key       => {}\n\
+             Decrypted => {}",
             str::from_utf8(key), str::from_utf8(text)),
         NotFound => println!("ERROR: No key found")
     }
@@ -151,8 +174,9 @@ fn test_hamming_distance() {
 #[test]
 fn test_guess_keysize() {
     let buffer1 = ~"123456";
-    assert_eq!(guess_keysize(buffer1.into_bytes()), None);
+    assert_eq!(guess_keysize(buffer1.into_bytes()), ~[]);
 
     let buffer2 = ~"1234567890123456789012345678901234567890";
-    assert_eq!(guess_keysize(buffer2.into_bytes()), Some(10));
+    assert_eq!(guess_keysize(buffer2.into_bytes()),
+               ~[10u, 4u, 6u, 8u, 2u, 9u, 3u, 7u, 5u]);
 }

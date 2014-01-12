@@ -1,6 +1,9 @@
-- Fix English text checking for task 4
-- Task 6 (break repeating-key XOR)
+- Clean up English text checking for task 4
+- Clean up Task 6 (break repeating-key XOR)
 - Clean up all the code
+- Tests
+
+- Closures without the return type?
 
 - INFO: buffer.txt for task 6 had incorrect padding '=' at the end? Maybe it's
   Rust error?

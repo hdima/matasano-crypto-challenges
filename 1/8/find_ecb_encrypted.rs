@@ -69,7 +69,7 @@ fn main() {
     match result {
         Found(line_num, text) => println!("Found ECB encrypted text at \
                                            line {}: {}", line_num, text),
-        NotFound => println("No ECB encrypted text found")
+        NotFound => println!("No ECB encrypted text found")
     }
 }
 

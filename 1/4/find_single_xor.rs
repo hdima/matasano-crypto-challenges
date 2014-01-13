@@ -7,34 +7,39 @@ extern mod single_xor_lib;
 
 extern mod extra;
 
+use std::str;
 use std::path::Path;
 use std::io::fs::File;
 use std::io::buffered::BufferedReader;
 use extra::hex::FromHex;
 use single_xor_lib::{decrypt, Found, NotFound};
 
-fn find_encrypted(file: File) {
-    use std::str;
-
+/*
+ * Find a line encrypted with single-character XOR cipher
+ */
+fn find_encrypted_line(file: File) {
     let mut reader = BufferedReader::new(file);
-    for line in reader.lines() {
+    for (n, line) in reader.lines().enumerate() {
         let encrypted = line.from_hex().unwrap();
         match decrypt(encrypted) {
             Found(key, decrypted) => {
-                    println!("Key        => {}", key);
-                    println!("Decrypted  => {}", str::from_utf8(decrypted));
-                    //println!("Decrypted  => {:?}", decrypted);
+                    println!("Found encrypted string at line {}:\n\
+                             Key  => '{}' ({})\n\
+                             Text => \"{}\"", n + 1, key as char, key,
+                             str::from_utf8(decrypted));
                 }
             NotFound => ()
         }
     }
 }
 
-#[cfg(not(test))]
+/*
+ * Main entry point
+ */
 fn main() {
     let path = Path::new("strings.txt");
     match File::open(&path) {
-        Some(file) => find_encrypted(file),
+        Some(file) => find_encrypted_line(file),
         None => fail!("Unable to open strings.txt")
     }
 }

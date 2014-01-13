@@ -35,7 +35,7 @@ enum DecryptionResult {
  * If vectors have different lengths the smallest length will be used.
  */
 fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
-    static n_bits: [u8, ..256] =
+    static n_bits: [uint, ..256] =
             [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3,
              3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4,
              3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2,
@@ -49,49 +49,44 @@ fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
              5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 4, 5,
              5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8];
     // Iteration will stop once one of the iterators will stop
-    let iter = s1.iter().zip(s2.iter());
-    iter.map(|(&c1, &c2)| -> uint n_bits[c1 ^ c2] as uint).sum()
+    s1.iter().zip(s2.iter()).map(|(&c1, &c2)| n_bits[c1 ^ c2]).sum()
 }
 
 /*
- * Guess possible key size for the binary buffer
+ * Return list of key sizes sorted by probability
  */
 fn guess_keysize(buffer: &[u8]) -> ~[uint] {
-    static max_key_size: uint = 50;
+    static min_block_size: uint = 2;
+    static max_block_size: uint = 50;
 
-    let len = buffer.len();
-    let mut keysizes = vec::with_capacity(max_key_size - 2);
+    let max = match buffer.len() / 4 {
+        block_size if block_size <= min_block_size =>
+            // Make sure max block size is greater than min block size
+            return ~[],
+        block_size if block_size > max_block_size =>
+            max_block_size,
+        block_size =>
+            // We're not trying too hard here
+            block_size
+    };
+    let mut keysizes = vec::with_capacity(max - min_block_size);
 
-    for s in range(2, max_key_size + 1) {
-        let size = s as uint;
-        // We're not trying too hard here
-        // TODO: Calculate max value outside of the loop and remove this check
-        if len < size * 4 {
-            break;
-        }
-        // Calculate average Hamming distance between four pairs of encrypted
-        // text
-        let d1 = hamming_distance(buffer.slice(0, size),
-                                  buffer.slice(size, size * 2));
-        let d2 = hamming_distance(buffer.slice(size, size * 2),
-                                  buffer.slice(size * 2, size * 3));
-        let d3 = hamming_distance(buffer.slice(0, size),
-                                  buffer.slice(size * 3, size * 4));
-        let d4 = hamming_distance(buffer.slice(size * 2, size * 3),
-                                  buffer.slice(size * 3, size * 4));
-        let dist: f32 = (d1 + d2 + d3 + d4) as f32 / (4 * size) as f32;
+    for size in range(min_block_size, max + 1) {
+        // Calculate average Hamming distance between four consecutive parts of
+        // encrypted text
+        let s1 = buffer.slice(0, size);
+        let s2 = buffer.slice(size, size * 2);
+        let s3 = buffer.slice(size * 2, size * 3);
+        let s4 = buffer.slice(size * 3, size * 4);
+        let d1 = hamming_distance(s1, s2);
+        let d2 = hamming_distance(s2, s3);
+        let d3 = hamming_distance(s1, s4);
+        let d4 = hamming_distance(s3, s4);
+        // Calculate average and normalized value of the distance
+        let dist: uint = ((d1 + d2 + d3 + d4) * 1000) / (4 * size);
         keysizes.push((dist, size));
     }
-    // TODO: Add TotalOrd implementation for f32?
-    keysizes.sort_by(|&(d1, _), &(d2, _)| {
-            if d1 > d2 {
-                Greater
-            } else if d1 < d2 {
-                Less
-            } else {
-                Equal
-            }
-        });
+    keysizes.sort();
     keysizes.iter().map(|&(_, s)| s).collect()
 }
 
@@ -124,10 +119,8 @@ fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> DecryptionResult {
 
 #[cfg(not(test))]
 fn decrypt_repeating_xor(encrypted: &[u8]) -> DecryptionResult {
-    // TODO: It seems we need to try few keysizes here
     match guess_keysize(encrypted) {
         [] => return NotFound,
-        // TODO: Key size is 29, key: "Terminator X"
         keysizes => {
             for &keysize in keysizes.iter() {
                 let found = decrypt_with_keysize(encrypted, keysize);

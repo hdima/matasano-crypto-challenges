@@ -1,6 +1,6 @@
-- Clean up English text checking for task 4
-- Clean up Task 6 (break repeating-key XOR)
 - Clean up all the code
+- Rename "single_xor" to "single_char_xor"?
+- Clean up DecryptionResult for tasks 3 and 6
 - Tests
 
 - Closures without the return type?

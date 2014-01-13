@@ -20,12 +20,14 @@ fn main() {
                   78373e783a393b3736";
     let encrypted = input.from_hex().unwrap();
 
-    println!("Input      => {}", input);
-    println!("Encrypted  => {:?}", encrypted);
+    println!("Input        => \"{}\"\n\
+              Binary input => {:?}\n",
+             input, encrypted);
     match decrypt(encrypted) {
         Found(key, decrypted) => {
-                println!("Key        => {}, {}", key, key as char);
-                println!("Decrypted  => {}", str::from_utf8(decrypted));
+                println!("Key  => '{}', ({})\n\
+                          Text => \"{}\"",
+                         key as char, key, str::from_utf8(decrypted));
             }
         NotFound => fail!("No decryption key found")
     }

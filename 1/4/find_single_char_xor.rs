@@ -3,7 +3,7 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern mod single_xor_lib;
+extern mod single_char_xor_lib;
 
 extern mod extra;
 
@@ -12,7 +12,7 @@ use std::path::Path;
 use std::io::fs::File;
 use std::io::buffered::BufferedReader;
 use extra::hex::FromHex;
-use single_xor_lib::{decrypt, Found, NotFound};
+use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
 
 /*
  * Find a line encrypted with single-character XOR cipher
@@ -22,13 +22,13 @@ fn find_encrypted_line(file: File) {
     for (n, line) in reader.lines().enumerate() {
         let encrypted = line.from_hex().unwrap();
         match decrypt(encrypted) {
-            Found(key, decrypted) => {
-                    println!("Found encrypted string at line {}:\n\
-                             Key  => '{}' ({})\n\
-                             Text => \"{}\"", n + 1, key as char, key,
-                             str::from_utf8(decrypted));
-                }
-            NotFound => ()
+            SingleCharKeyFound(key, decrypted) => {
+                println!("Found encrypted string at line {}:\n\
+                         Key  => '{}' ({})\n\
+                         Text => \"{}\"", n + 1, key as char, key,
+                         str::from_utf8_owned(decrypted));
+            }
+            SingleCharKeyNotFound => ()
         }
     }
 }

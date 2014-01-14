@@ -1,14 +1,14 @@
-single_xor: single_xor.rs libsingle_xor_lib-*.so
+single_char_xor: single_char_xor.rs libsingle_char_xor_lib-*.so
 	rustc -L . $<
 
-libsingle_xor_lib-*.so: single_xor_lib.rs
+libsingle_char_xor_lib-*.so: single_char_xor_lib.rs
 	rustc $<
 
-test: single_xor_lib.rs
+test: single_char_xor_lib.rs
 	rustc --test -L . -o test $<
 	./test
 
 clean:
-	rm -f test single_xor libsingle_xor_lib-*.so
+	rm -f test single_char_xor libsingle_char_xor_lib-*.so
 
 .PHONY: test clean

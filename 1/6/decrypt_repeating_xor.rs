@@ -3,7 +3,7 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern mod single_xor_lib;
+extern mod single_char_xor_lib;
 
 extern mod extra;
 
@@ -20,14 +20,12 @@ use std::iter::AdditiveIterator;
 #[cfg(not(test))]
 use extra::base64::FromBase64;
 
-#[cfg(not(test))]
-use single_xor_lib::decrypt;
+use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
 
-// TODO: Rename it or rename the corresponding type in single_xor_lib
-#[cfg(not(test))]
-enum DecryptionResult {
-    Found(~[u8], ~[u8]),
-    NotFound
+// Result of the decryption
+enum RepeatingKeyResult {
+    RepeatingKeyFound(~[u8], ~[u8]),
+    RepeatingKeyNotFound
 }
 
 /*
@@ -90,12 +88,11 @@ fn guess_keysize(buffer: &[u8]) -> ~[uint] {
     keysizes.iter().map(|&(_, s)| s).collect()
 }
 
-#[cfg(not(test))]
-fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> DecryptionResult {
+fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> RepeatingKeyResult {
     let len = encrypted.len();
     let line_len = (len / keysize) + 1;
     let mut buffers: ~[~[u8]] = vec::from_fn(keysize,
-        |_| -> ~[u8] vec::with_capacity(line_len));
+        |_| vec::with_capacity(line_len));
     for block in encrypted.chunks(keysize) {
         for (i, &c) in block.iter().enumerate() {
             buffers[i].push(c);
@@ -105,42 +102,44 @@ fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> DecryptionResult {
     let mut decrypted: ~[u8] = vec::from_elem(len, 0u8);
     for (i, block) in buffers.iter().enumerate() {
         match decrypt(*block) {
-            single_xor_lib::Found(k, text) => {
+            SingleCharKeyFound(k, text) => {
                 key.push(k);
                 for (j, &c) in text.iter().enumerate() {
                     decrypted[i + j * keysize] = c;
                 }
             },
-            single_xor_lib::NotFound => return NotFound
+            SingleCharKeyNotFound => return RepeatingKeyNotFound
         }
     }
-    Found(key, decrypted)
+    RepeatingKeyFound(key, decrypted)
 }
 
-#[cfg(not(test))]
-fn decrypt_repeating_xor(encrypted: &[u8]) -> DecryptionResult {
+fn decrypt_repeating_xor(encrypted: &[u8]) -> RepeatingKeyResult {
     match guess_keysize(encrypted) {
-        [] => return NotFound,
+        [] => return RepeatingKeyNotFound,
         keysizes => {
             for &keysize in keysizes.iter() {
                 let found = decrypt_with_keysize(encrypted, keysize);
                 match found {
-                    Found(..) => return found,
-                    NotFound => ()
+                    RepeatingKeyFound(..) => return found,
+                    RepeatingKeyNotFound => ()
                 }
             }
         }
     }
-    NotFound
+    RepeatingKeyNotFound
 }
 
 #[cfg(not(test))]
-fn decrypt_repeating_xor_file(mut file: File) -> DecryptionResult {
+fn decrypt_repeating_xor_file(mut file: File) -> RepeatingKeyResult {
     let data = file.read_to_end();
     let encrypted = str::from_utf8(data).from_base64().unwrap();
     decrypt_repeating_xor(encrypted)
 }
 
+/*
+ * Main entry point
+ */
 #[cfg(not(test))]
 fn main() {
     let path = Path::new("buffer.txt");
@@ -149,27 +148,54 @@ fn main() {
         None => fail!("Unable to open buffer.txt")
     };
     match decrypted {
-        Found(key, text) => println!(
-            "Key       => {}\n\
-             Decrypted => {}",
+        RepeatingKeyFound(key, text) => println!(
+            "Key       => \"{}\"\n\
+             Decrypted => \"{}\"",
             str::from_utf8(key), str::from_utf8(text)),
-        NotFound => println!("ERROR: No key found")
+        RepeatingKeyNotFound => println!("ERROR: No key found")
     }
 }
 
-#[test]
-fn test_hamming_distance() {
-    let s1 = ~"this is a test";
-    let s2 = ~"wokka wokka!!!";
-    assert_eq!(hamming_distance(s1.into_bytes(), s2.into_bytes()), 37);
-}
+/*
+ * Tests
+ */
+#[cfg(test)]
+mod test {
+    use std::str;
+    use extra::hex::FromHex;
+    use super::{hamming_distance, guess_keysize};
+    use super::{decrypt_repeating_xor, RepeatingKeyFound, RepeatingKeyNotFound};
 
-#[test]
-fn test_guess_keysize() {
-    let buffer1 = ~"123456";
-    assert_eq!(guess_keysize(buffer1.into_bytes()), ~[]);
+    #[test]
+    fn test_hamming_distance() {
+        let s1 = ~"this is a test";
+        let s2 = ~"wokka wokka!!!";
+        assert_eq!(hamming_distance(s1.into_bytes(), s2.into_bytes()), 37);
+    }
 
-    let buffer2 = ~"1234567890123456789012345678901234567890";
-    assert_eq!(guess_keysize(buffer2.into_bytes()),
-               ~[10u, 4u, 6u, 8u, 2u, 9u, 3u, 7u, 5u]);
+    #[test]
+    fn test_guess_keysize() {
+        let buffer1 = ~"123456";
+        assert_eq!(guess_keysize(buffer1.into_bytes()), ~[]);
+
+        let buffer2 = ~"1234567890123456789012345678901234567890";
+        assert_eq!(guess_keysize(buffer2.into_bytes()),
+                   ~[10u, 4u, 6u, 8u, 2u, 9u, 3u, 7u, 5u]);
+    }
+
+    #[test]
+    fn test_decrypt_repeating_xor() {
+        let buffer = ~"0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d633\
+                       43c2a26226324272765272a282b2f20430a652e2c652a3124333a\
+                       653e2b2027630c692b20283165286326302e27282f";
+        let binary = buffer.from_hex().unwrap();
+        let (key, text) = match decrypt_repeating_xor(binary) {
+            RepeatingKeyFound(key, text) => (key, text),
+            RepeatingKeyNotFound => fail!("Key not found")
+        };
+        assert_eq!(str::from_utf8(key), "ICE");
+        assert_eq!(str::from_utf8(text),
+                   "Burning 'em, if you ain't quick and nimble\n\
+                    I go crazy when I hear a cymbal");
+    }
 }

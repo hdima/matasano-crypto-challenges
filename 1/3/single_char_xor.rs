@@ -3,13 +3,13 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern mod single_xor_lib;
+extern mod single_char_xor_lib;
 
 extern mod extra;
 
 use std::str;
 
-use single_xor_lib::{decrypt, Found, NotFound};
+use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
 use extra::hex::FromHex;
 
 /*
@@ -24,11 +24,11 @@ fn main() {
               Binary input => {:?}\n",
              input, encrypted);
     match decrypt(encrypted) {
-        Found(key, decrypted) => {
-                println!("Key  => '{}', ({})\n\
-                          Text => \"{}\"",
-                         key as char, key, str::from_utf8(decrypted));
-            }
-        NotFound => fail!("No decryption key found")
+        SingleCharKeyFound(key, decrypted) => {
+            println!("Key  => '{}', ({})\n\
+                      Text => \"{}\"",
+                     key as char, key, str::from_utf8_owned(decrypted));
+        }
+        SingleCharKeyNotFound => fail!("No decryption key found")
     }
 }

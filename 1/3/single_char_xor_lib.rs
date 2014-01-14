@@ -3,7 +3,7 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-#[crate_id="single_xor_lib#0.1"];
+#[crate_id="single_char_xor_lib#0.1"];
 #[crate_type="lib"];
 
 extern mod extra;
@@ -14,11 +14,13 @@ use std::vec;
 static ENGLISH_CHARS_BY_FREQ: &'static[u8] = bytes!(
     " eEtTaAiInNoOsSrRlLdDhHcCuUmMfFpPyYgGwWvVbBkKxXjJqQzZ");
 
-pub enum DecryptionResult {
-    Found(u8, ~[u8]),
-    NotFound
+// Result of the decryption
+pub enum SingleCharXORResult {
+    SingleCharKeyFound(u8, ~[u8]),
+    SingleCharKeyNotFound
 }
 
+// Bytes statistics
 struct ByteStat {
     byte: u8,
     num: uint
@@ -55,8 +57,8 @@ fn is_english(buffer: &[u8]) -> bool {
     /* The check is very simple here, we basically expect only printable
      * characters. But it should work in most of the cases.
      *
-     * And we can't use for example n-grams with size greater than 1 here
-     * because this library also used for slices of text.
+     * And we can't use for example n-grams because this library also used for
+     * slices of text.
      */
     for &c in buffer.iter() {
         match c as char {
@@ -72,7 +74,7 @@ fn is_english(buffer: &[u8]) -> bool {
 /*
  * Try to decrypt XOR encrypted text in the buffer
  */
-pub fn decrypt(buffer: &[u8]) -> DecryptionResult {
+pub fn decrypt(buffer: &[u8]) -> SingleCharXORResult {
     if buffer.is_empty() {
         fail!("Buffer is empty");
     }
@@ -83,10 +85,10 @@ pub fn decrypt(buffer: &[u8]) -> DecryptionResult {
         let key = first ^ c;
         let decrypted = xor_by_key(buffer, key);
         if is_english(decrypted) {
-            return Found(key, decrypted);
+            return SingleCharKeyFound(key, decrypted);
         }
     }
-    NotFound
+    SingleCharKeyNotFound
 }
 
 /*
@@ -97,7 +99,7 @@ mod test {
     use std::str;
     use extra::hex::FromHex;
     use super::{xor_by_key, get_most_freq_char, is_english};
-    use super::{decrypt, Found};
+    use super::{decrypt, SingleCharKeyFound};
 
     #[test]
     fn test_xor_by_key() {
@@ -124,8 +126,8 @@ mod test {
         let buffer = ~"1b37373331363f78151b7f2b783431333d78397828372d363c78\
                        373e783a393b3736";
         let (key, decrypted) = match decrypt(buffer.from_hex().unwrap()) {
-            Found(key, decrypted) => (key, decrypted),
-            NotFound => fail!("Key not found")
+            SingleCharKeyFound(key, decrypted) => (key, decrypted),
+            SingleCharKeyNotFound => fail!("Key not found")
         };
         assert_eq!('X', key as char);
         assert_eq!("Cooking MC's like a pound of bacon",

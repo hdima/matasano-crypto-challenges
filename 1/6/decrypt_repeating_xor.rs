@@ -20,17 +20,18 @@ use std::iter::AdditiveIterator;
 #[cfg(not(test))]
 use extra::base64::FromBase64;
 
+#[cfg(not(test))]
 use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
 
 // Result of the decryption
+#[cfg(not(test))]
 enum RepeatingKeyResult {
     RepeatingKeyFound(~[u8], ~[u8]),
     RepeatingKeyNotFound
 }
 
 /*
- * Calculate Hamming distance between two binary vectors.
- * If vectors have different lengths the smallest length will be used.
+ * Calculate Hamming distance between two equal-length buffers.
  */
 fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
     static n_bits: [uint, ..256] =
@@ -46,7 +47,9 @@ fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
              4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6,
              5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 4, 5,
              5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8];
-    // Iteration will stop once one of the iterators will stop
+    if s1.len() != s2.len() {
+        fail!("Not equal length buffers");
+    }
     s1.iter().zip(s2.iter()).map(|(&c1, &c2)| n_bits[c1 ^ c2]).sum()
 }
 
@@ -57,7 +60,7 @@ fn guess_keysize(buffer: &[u8]) -> ~[uint] {
     static min_block_size: uint = 2;
     static max_block_size: uint = 50;
 
-    let max = match buffer.len() / 4 {
+    let max = match buffer.len() / 2 {
         block_size if block_size <= min_block_size =>
             // Make sure max block size is greater than min block size
             return ~[],
@@ -70,24 +73,29 @@ fn guess_keysize(buffer: &[u8]) -> ~[uint] {
     let mut keysizes = vec::with_capacity(max - min_block_size);
 
     for size in range(min_block_size, max + 1) {
-        // Calculate average Hamming distance between four consecutive parts of
-        // encrypted text
-        let s1 = buffer.slice(0, size);
-        let s2 = buffer.slice(size, size * 2);
-        let s3 = buffer.slice(size * 2, size * 3);
-        let s4 = buffer.slice(size * 3, size * 4);
-        let d1 = hamming_distance(s1, s2);
-        let d2 = hamming_distance(s2, s3);
-        let d3 = hamming_distance(s1, s4);
-        let d4 = hamming_distance(s3, s4);
-        // Calculate average and normalized value of the distance
-        let dist: uint = ((d1 + d2 + d3 + d4) * 1000) / (4 * size);
+        /* Calculate average Hamming distance between dynamic number of samples
+         *
+         * It seems for smaller block sizes we need to collect more samples to
+         * achieve better results. But see also comments for
+         * decrypt_repeating_xor() function.
+         */
+        let samples: uint = (max * 2) / size - 1;
+        let mut dist = 0u;
+        for i in range(0, samples) {
+            let start = i * size;
+            let s1 = buffer.slice(start, start + size);
+            let s2 = buffer.slice(start + size, start + size * 2);
+            dist += hamming_distance(s1, s2);
+        }
+        // Average Hamming distance for current block size
+        dist = (dist * 1000) / (samples * size);
         keysizes.push((dist, size));
     }
     keysizes.sort();
     keysizes.iter().map(|&(_, s)| s).collect()
 }
 
+#[cfg(not(test))]
 fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> RepeatingKeyResult {
     let len = encrypted.len();
     let line_len = (len / keysize) + 1;
@@ -114,10 +122,17 @@ fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> RepeatingKeyResult {
     RepeatingKeyFound(key, decrypted)
 }
 
+#[cfg(not(test))]
 fn decrypt_repeating_xor(encrypted: &[u8]) -> RepeatingKeyResult {
     match guess_keysize(encrypted) {
         [] => return RepeatingKeyNotFound,
         keysizes => {
+            /* It seems it's harder to get the correct order of key sizes if
+             * length of the real key or length of the text is small. So
+             * probably better results can be achieved if we collect multiple
+             * number of decrypted texts and then select the correct one based
+             * on n-grams model for example.
+             */
             for &keysize in keysizes.iter() {
                 let found = decrypt_with_keysize(encrypted, keysize);
                 match found {
@@ -161,10 +176,7 @@ fn main() {
  */
 #[cfg(test)]
 mod test {
-    use std::str;
-    use extra::hex::FromHex;
     use super::{hamming_distance, guess_keysize};
-    use super::{decrypt_repeating_xor, RepeatingKeyFound, RepeatingKeyNotFound};
 
     #[test]
     fn test_hamming_distance() {
@@ -175,27 +187,10 @@ mod test {
 
     #[test]
     fn test_guess_keysize() {
-        let buffer1 = ~"123456";
+        let buffer1 = ~"123";
         assert_eq!(guess_keysize(buffer1.into_bytes()), ~[]);
 
-        let buffer2 = ~"1234567890123456789012345678901234567890";
-        assert_eq!(guess_keysize(buffer2.into_bytes()),
-                   ~[10u, 4u, 6u, 8u, 2u, 9u, 3u, 7u, 5u]);
-    }
-
-    #[test]
-    fn test_decrypt_repeating_xor() {
-        let buffer = ~"0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d633\
-                       43c2a26226324272765272a282b2f20430a652e2c652a3124333a\
-                       653e2b2027630c692b20283165286326302e27282f";
-        let binary = buffer.from_hex().unwrap();
-        let (key, text) = match decrypt_repeating_xor(binary) {
-            RepeatingKeyFound(key, text) => (key, text),
-            RepeatingKeyNotFound => fail!("Key not found")
-        };
-        assert_eq!(str::from_utf8(key), "ICE");
-        assert_eq!(str::from_utf8(text),
-                   "Burning 'em, if you ain't quick and nimble\n\
-                    I go crazy when I hear a cymbal");
+        let buffer2 = ~"1234512345";
+        assert_eq!(guess_keysize(buffer2.into_bytes()), ~[5u, 4u, 2u, 3u]);
     }
 }

@@ -1,7 +1,4 @@
 - Clean up all the code
-- Tests
-- Task 6 tests. It seems hamming distance doesn't work as expected?
-- Closures without the return type?
 
 - INFO: buffer.txt for task 6 had incorrect padding '=' at the end? It's
   a Rust error - it should ignore \r and \n during the padding consumption

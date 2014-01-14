@@ -1,7 +1,7 @@
-// AES-128 ECB mode decrypter
-//
-// Dmitry Vasiliev <dima@hlabs.org>
-//
+/* AES-128 ECB mode decrypter
+ *
+ * Dmitry Vasiliev <dima@hlabs.org>
+ */
 
 extern mod extra;
 
@@ -38,6 +38,9 @@ extern {
     fn EVP_DecryptFinal(ctx: EVP_CIPHER_CTX, res: *mut u8, len: &mut c_int);
 }
 
+/*
+ * Decrypt AES_128 ECB
+ */
 fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> ~[u8] {
     if key.len() != 16u {
         fail!("Invalid key length");
@@ -75,6 +78,9 @@ fn decrypt_aes_ecb_file(mut file: File, key_str: &str) -> ~[u8] {
     decrypt_aes_ecb(encrypted, key)
 }
 
+/*
+ * Main entry point
+ */
 #[cfg(not(test))]
 fn main() {
     let key = ~"YELLOW SUBMARINE";
@@ -83,31 +89,38 @@ fn main() {
         Some(file) => decrypt_aes_ecb_file(file, key),
         None => fail!("Unable to open aes_ecb_encrypted.txt")
     };
-    println!("Decrypted => {}", str::from_utf8(decrypted));
+    println!("Decrypted => \"{}\"", str::from_utf8(decrypted));
 }
 
-#[test]
-fn test_aes_ecb_decrypt() {
+/*
+ * Tests
+ */
+#[cfg(test)]
+mod test {
     use extra::hex::FromHex;
+    use super::decrypt_aes_ecb;
 
-    let key = "00000000000000000000000000000000".from_hex().unwrap();
-    let ciphertext = "0336763e966d92595a567cc9ce537f5e".from_hex().unwrap();
-    assert_eq!(decrypt_aes_ecb(ciphertext, key),
-        "f34481ec3cc627bacd5dc3fb08f273e6".from_hex().unwrap());
+    #[test]
+    fn test_aes_ecb_decrypt() {
+        let key = "00000000000000000000000000000000".from_hex().unwrap();
+        let ciphertext = "0336763e966d92595a567cc9ce537f5e".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext, key),
+            "f34481ec3cc627bacd5dc3fb08f273e6".from_hex().unwrap());
 
-    let key2 = "10a58869d74be5a374cf867cfb473859".from_hex().unwrap();
-    let ciphertext2 = "6d251e6944b051e04eaa6fb4dbf78465".from_hex().unwrap();
-    assert_eq!(decrypt_aes_ecb(ciphertext2, key2),
-        "00000000000000000000000000000000".from_hex().unwrap());
+        let key2 = "10a58869d74be5a374cf867cfb473859".from_hex().unwrap();
+        let ciphertext2 = "6d251e6944b051e04eaa6fb4dbf78465".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext2, key2),
+            "00000000000000000000000000000000".from_hex().unwrap());
 
-    let key3 = "80000000000000000000000000000000".from_hex().unwrap();
-    let ciphertext3 = "0edd33d3c621e546455bd8ba1418bec8".from_hex().unwrap();
-    assert_eq!(decrypt_aes_ecb(ciphertext3, key3),
-        "00000000000000000000000000000000".from_hex().unwrap());
+        let key3 = "80000000000000000000000000000000".from_hex().unwrap();
+        let ciphertext3 = "0edd33d3c621e546455bd8ba1418bec8".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext3, key3),
+            "00000000000000000000000000000000".from_hex().unwrap());
 
-    let key4 = "00000000000000000000000000000000".from_hex().unwrap();
-    let ciphertext4 = "3ad78e726c1ec02b7ebfe92b23d9ec34".from_hex().unwrap();
-    assert_eq!(decrypt_aes_ecb(ciphertext4, key4),
-        "80000000000000000000000000000000".from_hex().unwrap());
+        let key4 = "00000000000000000000000000000000".from_hex().unwrap();
+        let ciphertext4 = "3ad78e726c1ec02b7ebfe92b23d9ec34".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext4, key4),
+            "80000000000000000000000000000000".from_hex().unwrap());
 
+    }
 }

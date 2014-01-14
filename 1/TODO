@@ -1,4 +1,2 @@
-- Clean up all the code
-
 - INFO: buffer.txt for task 6 had incorrect padding '=' at the end? It's
   a Rust error - it should ignore \r and \n during the padding consumption

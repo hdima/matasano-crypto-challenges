@@ -1,2 +1,4 @@
+- Try to implement trigram checker for task 6 to make it more robust?
+
 - INFO: buffer.txt for task 6 had incorrect padding '=' at the end? It's
   a Rust error - it should ignore \r and \n during the padding consumption

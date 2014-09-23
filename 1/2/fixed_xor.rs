@@ -3,15 +3,16 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern mod extra;
+extern crate debug;
+extern crate serialize;
 
 #[cfg(not(test))]
-use extra::hex::{FromHex, ToHex};
+use serialize::hex::{FromHex, ToHex};
 
 /*
  * XOR two equal-length buffers
  */
-fn xor_buffers(s1: &[u8], s2: &[u8]) -> ~[u8] {
+fn xor_buffers(s1: &[u8], s2: &[u8]) -> Vec<u8> {
     if s1.len() != s2.len() {
         fail!("Not equal length of input buffers")
     }
@@ -25,17 +26,19 @@ fn xor_buffers(s1: &[u8], s2: &[u8]) -> ~[u8] {
 fn main() {
     use std::str;
 
-    let key = ~"1c0111001f010100061a024b53535009181c";
-    let input = ~"686974207468652062756c6c277320657965";
+    let key = "1c0111001f010100061a024b53535009181c";
+    let input = "686974207468652062756c6c277320657965";
     println!("Key           => {}", key);
     println!("Input         => {}", input);
     let key_bytes = key.from_hex().unwrap();
     let input_bytes = input.from_hex().unwrap();
-    println!("Key bytes     => {:?}", key_bytes);
-    println!("Input bytes   => {}", str::from_utf8(input_bytes));
-    let output = xor_buffers(input_bytes, key_bytes);
-    println!("Output        => {}", output.to_hex());
-    println!("Output bytes  => {}", str::from_utf8(output));
+    println!("Key bytes     => {:?}", key_bytes.as_slice());
+    let input_str = str::from_utf8(input_bytes.as_slice()).unwrap();
+    println!("Input bytes   => {}", input_str);
+    let output = xor_buffers(input_bytes.as_slice(), key_bytes.as_slice());
+    println!("Output        => {}", output.as_slice().to_hex());
+    let output_str = str::from_utf8(output.as_slice()).unwrap();
+    println!("Output bytes  => {}", output_str);
 }
 
 /*
@@ -44,13 +47,14 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::xor_buffers;
-    use extra::hex::{FromHex, ToHex};
+    use serialize::hex::{FromHex, ToHex};
 
     #[test]
     fn test_xor_buffers() {
         let key = "1c0111001f010100061a024b53535009181c".from_hex().unwrap();
         let input = "686974207468652062756c6c277320657965".from_hex().unwrap();
-        let output = xor_buffers(input, key);
-        assert_eq!(output.to_hex(), ~"746865206b696420646f6e277420706c6179");
+        let output = xor_buffers(input.as_slice(), key.as_slice());
+        assert_eq!(output.as_slice().to_hex().as_slice(),
+                   "746865206b696420646f6e277420706c6179");
     }
 }

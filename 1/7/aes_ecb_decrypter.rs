@@ -19,10 +19,11 @@ use libc::{c_int, c_uint};
 use serialize::base64::FromBase64;
 
 static AES_BLOCK_SIZE: uint = 16u;
+static RD_KEY_SIZE: uint = 4 * (14 + 1); // 4 * (AEX_MAXNR + 1)
 
 #[repr(C)]
 struct AesKey {
-    rd_key: [c_uint, ..(4 * (14 + 1))], // 4 * (AES_MAXNR + 1)
+    rd_key: [c_uint, ..RD_KEY_SIZE],
     rounds: c_int,
 }
 
@@ -34,24 +35,27 @@ extern {
 
 }
 
+fn init_aes_key(key: &[u8]) -> AesKey {
+    if key.len() != AES_BLOCK_SIZE {
+        fail!("Invalid key size");
+    }
+    let mut aes_key = AesKey{rd_key: [0, ..RD_KEY_SIZE], rounds: 0};
+    let bits = 8 * AES_BLOCK_SIZE as c_int;
+    let res = unsafe {AES_set_decrypt_key(key.as_ptr(), bits, &mut aes_key)};
+    if res != 0 {
+        fail!("Unable to init AES key. AES_set_decrypt_key() -> {}", res);
+    }
+    aes_key
+}
+
 /*
  * Decrypt AES-128 ECB
  */
 fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> Vec<u8> {
-    if key.len() != AES_BLOCK_SIZE {
-        fail!("Invalid key size");
-    }
-
-    let mut aes_key = AesKey{rd_key: [0, ..(4 * (14 + 1))], rounds: 0};
-    let bits = 8 * AES_BLOCK_SIZE as c_int;
-    let res = unsafe {AES_set_decrypt_key(key.as_ptr(), bits, &mut aes_key)};
-    if res != 0 {
-        fail!("Unable to set AES key, code {}", res);
-    }
-
+    let aes_key = init_aes_key(key);
     let mut dec = [0u8, ..AES_BLOCK_SIZE];
     encrypted.chunks(AES_BLOCK_SIZE).flat_map(|block| {
-        unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)}
+        unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
         dec.iter().map(|c| *c)
     }).collect()
 }

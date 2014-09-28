@@ -13,61 +13,47 @@ use std::io::fs::File;
 #[cfg(not(test))]
 use std::str;
 
-use libc::{c_int, c_void};
+use libc::{c_int, c_uint};
 
 #[cfg(not(test))]
 use serialize::base64::FromBase64;
 
-#[allow(non_camel_case_types)]
-type EVP_CIPHER_CTX = *const c_void;
-#[allow(non_camel_case_types)]
-type EVP_CIPHER = *const c_void;
+static AES_BLOCK_SIZE: uint = 16u;
+
+#[repr(C)]
+struct AesKey {
+    rd_key: [c_uint, ..(4 * (14 + 1))], // 4 * (AES_MAXNR + 1)
+    rounds: c_int,
+}
 
 #[link(name="crypto")]
 extern {
-    fn EVP_CIPHER_CTX_new() -> EVP_CIPHER_CTX;
-    fn EVP_CIPHER_CTX_set_padding(ctx: EVP_CIPHER_CTX, padding: c_int);
-    fn EVP_CIPHER_CTX_free(ctx: EVP_CIPHER_CTX);
+    fn AES_set_decrypt_key(userKey: *const u8, bits: c_int,
+                           key: *mut AesKey) -> c_int;
+    fn AES_decrypt(input: *const u8, out: *mut u8, key: *const AesKey);
 
-    fn EVP_aes_128_ecb() -> EVP_CIPHER;
-
-    fn EVP_DecryptInit(ctx: EVP_CIPHER_CTX, evp: EVP_CIPHER,
-                       key: *const u8, iv: *const u8);
-    fn EVP_DecryptUpdate(ctx: EVP_CIPHER_CTX, outbuf: *mut u8,
-                         outlen: &mut c_int, inbuf: *const u8, inlen: c_int);
-    fn EVP_DecryptFinal(ctx: EVP_CIPHER_CTX, res: *mut u8, len: &mut c_int);
 }
 
 /*
- * Decrypt AES_128 ECB
+ * Decrypt AES-128 ECB
  */
 fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> Vec<u8> {
-    let blocksize = 16u;
-    if key.len() != blocksize {
-        fail!("Invalid key length");
+    if key.len() != AES_BLOCK_SIZE {
+        fail!("Invalid key size");
     }
 
-    unsafe {
-        let iv = [];
-        let ctx = EVP_CIPHER_CTX_new();
-        let evp = EVP_aes_128_ecb();
-
-        EVP_DecryptInit(ctx, evp, key.as_ptr(), iv.as_ptr());
-        EVP_CIPHER_CTX_set_padding(ctx, 0 as c_int);
-
-        let mut bodylen = (encrypted.len() + blocksize) as c_int;
-        let mut body = Vec::from_elem(bodylen as uint, 0u8);
-        EVP_DecryptUpdate(ctx, body.as_mut_ptr(), &mut bodylen,
-                          encrypted.as_ptr(), encrypted.len() as c_int);
-
-        let mut taillen = blocksize as c_int;
-        let mut tail = Vec::from_elem(taillen as uint, 0u8);
-        EVP_DecryptFinal(ctx, tail.as_mut_ptr(), &mut taillen);
-        EVP_CIPHER_CTX_free(ctx);
-
-        body.slice_to(bodylen as uint).into_vec()
-            + tail.slice_to(taillen as uint).into_vec()
+    let mut aes_key = AesKey{rd_key: [0, ..(4 * (14 + 1))], rounds: 0};
+    let bits = 8 * AES_BLOCK_SIZE as c_int;
+    let res = unsafe {AES_set_decrypt_key(key.as_ptr(), bits, &mut aes_key)};
+    if res != 0 {
+        fail!("Unable to set AES key, code {}", res);
     }
+
+    let mut dec = [0u8, ..AES_BLOCK_SIZE];
+    encrypted.chunks(AES_BLOCK_SIZE).flat_map(|block| {
+        unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)}
+        dec.iter().map(|c| *c)
+    }).collect()
 }
 
 #[cfg(not(test))]

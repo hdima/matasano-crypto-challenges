@@ -35,6 +35,9 @@ extern {
 
 }
 
+/*
+ * Initialize AES key structure
+ */
 fn init_aes_key(key: &[u8]) -> AesKey {
     if key.len() != AES_BLOCK_SIZE {
         fail!("Invalid key size");
@@ -49,26 +52,42 @@ fn init_aes_key(key: &[u8]) -> AesKey {
 }
 
 /*
+ * Remove PKCS-7 padding
+ */
+fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
+    let len = data.len();
+    match data.last() {
+        Some(&c) if (c as uint) < AES_BLOCK_SIZE =>
+            data.truncate(len - c as uint),
+        _ => ()
+    }
+    data
+}
+
+/*
  * AES CBC decryption
  */
 fn decrypt_aes_cbc(encrypted: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     if iv.len() != AES_BLOCK_SIZE {
         fail!("Invlaid IV size");
     }
-    // FIXME: Should we pad incomplete data?
-    if encrypted.len() % AES_BLOCK_SIZE != 0 {
+    let enc_len = encrypted.len();
+    if enc_len % AES_BLOCK_SIZE != 0 {
         fail!("Invalid size of encrypted data");
     }
-    let aes_key = init_aes_key(key);
-    let mut result: Vec<u8> = Vec::with_capacity(encrypted.len());
-    let mut dec = [0u8, ..AES_BLOCK_SIZE];
-    encrypted.chunks(AES_BLOCK_SIZE).fold(iv, |prev, block| {
-        unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
-        // XOR ECB decripted block with the previous encrypted block
-        result.extend(prev.iter().zip(dec.iter()).map(|(&c1, &c2)| c1 ^ c2));
-        block
-    });
-    result
+    let mut result: Vec<u8> = Vec::with_capacity(enc_len);
+    if enc_len > 0 {
+        let aes_key = init_aes_key(key);
+        let mut dec = [0u8, ..AES_BLOCK_SIZE];
+        encrypted.chunks(AES_BLOCK_SIZE).fold(iv, |prev, block| {
+            unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
+            // XOR ECB decripted block with the previous encrypted block
+            let dblk = prev.iter().zip(dec.iter()).map(|(&c1, &c2)| c1 ^ c2);
+            result.extend(dblk);
+            block
+        });
+    }
+    remove_pkcs7_padding(result)
 }
 
 #[cfg(not(test))]

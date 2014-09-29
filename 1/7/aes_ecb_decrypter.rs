@@ -35,6 +35,9 @@ extern {
 
 }
 
+/*
+ * Initialize AES key structure
+ */
 fn init_aes_key(key: &[u8]) -> AesKey {
     if key.len() != AES_BLOCK_SIZE {
         fail!("Invalid key size");
@@ -49,15 +52,29 @@ fn init_aes_key(key: &[u8]) -> AesKey {
 }
 
 /*
+ * Remove PKCS-7 padding
+ */
+fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
+    let len = data.len();
+    match data.last() {
+        Some(&c) if (c as uint) < AES_BLOCK_SIZE =>
+            data.truncate(len - c as uint),
+        _ => ()
+    }
+    data
+}
+
+/*
  * Decrypt AES-128 ECB
  */
 fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> Vec<u8> {
     let aes_key = init_aes_key(key);
     let mut dec = [0u8, ..AES_BLOCK_SIZE];
-    encrypted.chunks(AES_BLOCK_SIZE).flat_map(|block| {
-        unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
-        dec.iter().map(|c| *c)
-    }).collect()
+    let result = encrypted.chunks(AES_BLOCK_SIZE).flat_map(|block| {
+            unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
+            dec.iter().map(|c| *c)
+        }).collect();
+    remove_pkcs7_padding(result)
 }
 
 #[cfg(not(test))]

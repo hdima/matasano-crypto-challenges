@@ -31,24 +31,47 @@ struct AesKey {
 extern {
     fn AES_set_decrypt_key(userKey: *const u8, bits: c_int,
                            key: *mut AesKey) -> c_int;
+    fn AES_set_encrypt_key(userKey: *const u8, bits: c_int,
+                           key: *mut AesKey) -> c_int;
     fn AES_decrypt(input: *const u8, out: *mut u8, key: *const AesKey);
+    fn AES_encrypt(input: *const u8, out: *mut u8, key: *const AesKey);
 
 }
 
 /*
  * Initialize AES key structure
  */
-fn init_aes_key(key: &[u8]) -> AesKey {
+#[inline]
+fn init_aes_key(key: &[u8], set_key: |*const u8, c_int, *mut AesKey| -> c_int)
+        -> AesKey {
     if key.len() != AES_BLOCK_SIZE {
         fail!("Invalid key size");
     }
     let mut aes_key = AesKey{rd_key: [0, ..RD_KEY_SIZE], rounds: 0};
     let bits = 8 * AES_BLOCK_SIZE as c_int;
-    let res = unsafe {AES_set_decrypt_key(key.as_ptr(), bits, &mut aes_key)};
+    let res = set_key(key.as_ptr(), bits, &mut aes_key);
     if res != 0 {
-        fail!("Unable to init AES key. AES_set_decrypt_key() -> {}", res);
+        fail!("Unable to init AES key -> {}", res);
     }
     aes_key
+}
+
+/*
+ * Initialize AES decryption key
+ */
+fn init_aes_decrypt_key(key: &[u8]) -> AesKey {
+    init_aes_key(key, |user_key, bits, aes_key| unsafe {
+        AES_set_decrypt_key(user_key, bits, aes_key)
+        })
+}
+
+/*
+ * Initialize AES encryption key
+ */
+fn init_aes_encrypt_key(key: &[u8]) -> AesKey {
+    init_aes_key(key, |user_key, bits, aes_key| unsafe {
+        AES_set_encrypt_key(user_key, bits, aes_key)
+        })
 }
 
 /*
@@ -71,13 +94,13 @@ fn decrypt_aes_cbc(encrypted: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     if iv.len() != AES_BLOCK_SIZE {
         fail!("Invlaid IV size");
     }
-    let enc_len = encrypted.len();
-    if enc_len % AES_BLOCK_SIZE != 0 {
+    let len = encrypted.len();
+    if len % AES_BLOCK_SIZE != 0 {
         fail!("Invalid size of encrypted data");
     }
-    let mut result: Vec<u8> = Vec::with_capacity(enc_len);
-    if enc_len > 0 {
-        let aes_key = init_aes_key(key);
+    let mut result: Vec<u8> = Vec::with_capacity(len);
+    if len > 0 {
+        let aes_key = init_aes_decrypt_key(key);
         let mut dec = [0u8, ..AES_BLOCK_SIZE];
         encrypted.chunks(AES_BLOCK_SIZE).fold(iv, |prev, block| {
             unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
@@ -88,6 +111,44 @@ fn decrypt_aes_cbc(encrypted: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
         });
     }
     remove_pkcs7_padding(result)
+}
+
+/*
+ * PKCS-7 padding
+ */
+fn pkcs7_padding(data: &[u8]) -> Vec<u8> {
+    match data.len() % AES_BLOCK_SIZE {
+        0 => data.into_vec(),
+        size => {
+            let pad = AES_BLOCK_SIZE - size;
+            data.into_vec() + Vec::from_elem(pad, pad as u8)
+        }
+    }
+}
+
+/*
+ * AES CBC encryption
+ */
+fn encrypt_aes_cbc(orig_data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+    if iv.len() != AES_BLOCK_SIZE {
+        fail!("Invlaid IV size");
+    }
+    let data = pkcs7_padding(orig_data);
+    let len = data.len();
+    let mut result: Vec<u8> = Vec::with_capacity(len);
+    if len > 0 {
+        let aes_key = init_aes_encrypt_key(key);
+        let mut enc = [0u8, ..AES_BLOCK_SIZE];
+        data.as_slice().chunks(AES_BLOCK_SIZE).fold(iv, |prev, block| {
+            // XOR block with the previous encrypted block
+            let eblk: Vec<u8> = prev.iter().zip(block.iter()).map(
+                                            |(&c1, &c2)| c1 ^ c2).collect();
+            unsafe {AES_encrypt(eblk.as_ptr(), enc.as_mut_ptr(), &aes_key)};
+            result.extend(enc.iter().map(|c| *c));
+            enc
+        });
+    }
+    result
 }
 
 #[cfg(not(test))]
@@ -115,4 +176,7 @@ fn main() {
                                     iv.as_slice());
     println!("Decrypted => \"{}\"",
              String::from_utf8_lossy(decrypted.as_slice()));
+    assert_eq!(data, encrypt_aes_cbc(decrypted.as_slice(), key.as_slice(),
+                                     iv.as_slice()));
+    println!("Encryption OK!");
 }

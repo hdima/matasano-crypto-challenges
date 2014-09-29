@@ -9,10 +9,10 @@ fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
     if len > size as uint {
         fail!("Invalid block size: {}", size);
     } else if len == size as uint {
-        data.to_vec()
+        data.into_vec()
     } else {
         let pad = size - len as u8;
-        data.to_vec() + Vec::from_elem(pad as uint, pad)
+        data.into_vec() + Vec::from_elem(pad as uint, pad)
     }
 }
 

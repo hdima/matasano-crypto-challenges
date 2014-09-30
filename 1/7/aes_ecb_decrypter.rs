@@ -69,12 +69,12 @@ fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
  */
 fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> Vec<u8> {
     let aes_key = init_aes_key(key);
-    let mut dec = [0u8, ..AES_BLOCK_SIZE];
-    let result = encrypted.chunks(AES_BLOCK_SIZE).flat_map(|block| {
-            unsafe {AES_decrypt(block.as_ptr(), dec.as_mut_ptr(), &aes_key)};
-            dec.iter().map(|c| *c)
-        }).collect();
-    remove_pkcs7_padding(result)
+    let mut data = encrypted.to_vec();
+    for block in data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE) {
+        // Decrypt in-place
+        unsafe {AES_decrypt(block.as_ptr(), block.as_mut_ptr(), &aes_key)};
+    }
+    remove_pkcs7_padding(data)
 }
 
 #[cfg(not(test))]

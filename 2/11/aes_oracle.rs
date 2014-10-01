@@ -5,27 +5,26 @@
 
 extern crate aes_lib;
 
-use std::rand;
+use std::rand::{random, task_rng, Rng};
 
 use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_ecb, encrypt_aes_cbc};
 
 
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| rand::random::<u8>())
+    Vec::from_fn(len, |_| random::<u8>())
 }
 
 fn random_uint(low: uint, high: uint) -> uint {
-    // FIXME: Why rand::task_rng().gen_range::<uint>(low, high) doesn't work?
-    (rand::random::<uint>() % (high - low)) + low
+    task_rng().gen_range(low, high)
 }
 
 fn random_bool() -> bool {
-    rand::random::<bool>()
+    random::<bool>()
 }
 
 fn aes_encrypt() -> (Vec<u8>, bool) {
     let key = random_bytes(AES_BLOCK_SIZE);
-    let data = random_bytes(AES_BLOCK_SIZE * random_uint(20, 60)
+    let data = random_bytes(AES_BLOCK_SIZE * random_uint(30, 80)
                             + random_uint(0, AES_BLOCK_SIZE));
     let use_ecb = random_bool();
     let encrypted = if use_ecb {

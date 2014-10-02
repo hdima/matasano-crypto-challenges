@@ -1,14 +1,18 @@
-decrypt_repeating_xor: decrypt_repeating_xor.rs libsingle_char_xor_lib-*.so
+NAME=decrypt_repeating_xor
+LIB_NAME=single_char_xor_lib
+LIB=lib${LIB_NAME}.rlib
+
+${NAME}: ${NAME}.rs ${LIB}
 	rustc -L . $<
 
-libsingle_char_xor_lib-*.so: ../3/single_char_xor_lib.rs
+${LIB}: ../3/${LIB_NAME}.rs
 	rustc --out-dir . $<
 
-test: decrypt_repeating_xor.rs libsingle_char_xor_lib-*.so
-	rustc --test -L . -o test $<
-	./test
+test: ${NAME}.rs ${LIB}
+	rustc --test -L . -o $@ $<
+	./$@
 
 clean:
-	rm -f test decrypt_repeating_xor libsingle_char_xor_lib-*.so
+	rm -f test ${NAME} ${LIB}
 
 .PHONY: test clean

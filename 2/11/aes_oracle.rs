@@ -7,10 +7,11 @@ extern crate aes_lib;
 
 use std::rand::{random, task_rng, Rng, Rand};
 use std::fmt::{Show, Formatter, FormatError};
+use std::collections::HashSet;
 
 use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_ecb, encrypt_aes_cbc};
 
-
+#[deriving(PartialEq, Eq)]
 enum Mode {
     ECB,
     CBC
@@ -56,7 +57,31 @@ fn aes_encrypt() -> (Vec<u8>, Mode) {
     }
 }
 
-fn main() {
-    let (encrypted, mode) = aes_encrypt();
-    println!("Mode: {}", mode);
+fn guess_aes_mode(buffer: &[u8]) -> Mode {
+    let mut blocks = HashSet::new();
+    for block in buffer.chunks(AES_BLOCK_SIZE) {
+        if !blocks.insert(block) {
+            return ECB;
+        }
+    }
+    CBC
 }
+
+fn main() {
+    for _ in range(0u, 20) {
+        let (encrypted, mode) = aes_encrypt();
+        match mode {
+            ECB => print!("Mode: {} ", mode),
+            CBC => print!("                        Mode: {} ", mode)
+        }
+        println!("{}", guess_aes_mode(encrypted.as_slice()));
+    }
+}
+//fn main() {
+//    let (encrypted, mode) = aes_encrypt();
+//    println!("Mode: {}", mode);
+//    match guess_aes_mode(encrypted.as_slice()) {
+//        m if m == mode => println!("Matched"),
+//        _ => println!("Not matched")
+//    }
+//}

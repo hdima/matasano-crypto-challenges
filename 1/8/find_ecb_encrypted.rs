@@ -3,22 +3,22 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern mod extra;
+extern crate serialize;
 
-use std::hashmap::HashSet;
+use std::collections::HashSet;
 #[cfg(not(test))]
 use std::path::Path;
 #[cfg(not(test))]
 use std::io::fs::File;
 #[cfg(not(test))]
-use std::io::buffered::BufferedReader;
+use std::io::BufferedReader;
 
 #[cfg(not(test))]
-use extra::hex::FromHex;
+use serialize::hex::FromHex;
 
 #[cfg(not(test))]
 enum ECBEncryptedLine {
-    Found(uint, ~str),
+    Found(uint, String),
     NotFound
 }
 
@@ -29,8 +29,10 @@ enum ECBEncryptedLine {
 fn find_ecb_encrypted_line(file: File) -> ECBEncryptedLine {
 
     let mut reader = BufferedReader::new(file);
-    for (line_num, line) in reader.lines().enumerate() {
-        if is_buffer_ecb_encrypted(line.from_hex().unwrap()) {
+    for (line_num, result) in reader.lines().enumerate() {
+        let line = result.unwrap();
+        let bin = line.as_slice().from_hex().unwrap();
+        if is_buffer_ecb_encrypted(bin.as_slice()) {
             // Return the first found line.
             // Also convert 0-based line number to 1-based
             return Found(line_num + 1, line);
@@ -44,7 +46,6 @@ fn find_ecb_encrypted_line(file: File) -> ECBEncryptedLine {
  */
 #[inline]
 fn is_buffer_ecb_encrypted(buffer: &[u8]) -> bool {
-    // 128 bit encryption
     static ecb_block_size: uint = 16;
 
     let mut blocks = HashSet::new();
@@ -63,8 +64,8 @@ fn is_buffer_ecb_encrypted(buffer: &[u8]) -> bool {
 fn main() {
     let path = Path::new("ciphertexts.txt");
     let result = match File::open(&path) {
-        Some(file) => find_ecb_encrypted_line(file),
-        None => fail!("Unable to open ciphertexts.txt")
+        Ok(file) => find_ecb_encrypted_line(file),
+        Err(err) => fail!("Unable to open {}: {}", path.display(), err)
     };
     match result {
         Found(line_num, text) => println!("Found ECB encrypted text at \
@@ -79,18 +80,20 @@ fn main() {
 #[cfg(test)]
 mod test {
     use super::is_buffer_ecb_encrypted;
-    use extra::hex::FromHex;
+    use serialize::hex::FromHex;
 
     #[test]
     fn test_is_buffer_ecb_encrypted() {
-        let buffer = ~"000102030405060708090a0b0c0d0e0f\
-                       101112131415161718191a1b1c1d1e1f\
-                       202122232425262728292a2b2c2d2e2f";
-        assert_eq!(is_buffer_ecb_encrypted(buffer.from_hex().unwrap()), false);
+        let buffer = "000102030405060708090a0b0c0d0e0f\
+                      101112131415161718191a1b1c1d1e1f\
+                      202122232425262728292a2b2c2d2e2f";
+        let bin = buffer.as_slice().from_hex().unwrap();
+        assert_eq!(is_buffer_ecb_encrypted(bin.as_slice()), false);
 
-        let buffer = ~"000102030405060708090a0b0c0d0e0f\
-                       101112131415161718191a1b1c1d1e1f\
-                       000102030405060708090a0b0c0d0e0f";
-        assert_eq!(is_buffer_ecb_encrypted(buffer.from_hex().unwrap()), true);
+        let buffer = "000102030405060708090a0b0c0d0e0f\
+                      101112131415161718191a1b1c1d1e1f\
+                      000102030405060708090a0b0c0d0e0f";
+        let bin = buffer.as_slice().from_hex().unwrap();
+        assert_eq!(is_buffer_ecb_encrypted(bin.as_slice()), true);
     }
 }

@@ -1,11 +1,13 @@
-find_ecb_encrypted: find_ecb_encrypted.rs
+NAME=find_ecb_encrypted
+
+${NAME}: ${NAME}.rs
 	rustc $<
 
-test: find_ecb_encrypted.rs
-	rustc --test -o test $<
-	./test
+test: ${NAME}.rs
+	rustc --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test find_ecb_encrypted
+	rm -f test ${NAME}
 
 .PHONY: test clean

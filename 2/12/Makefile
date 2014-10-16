@@ -1,0 +1,16 @@
+NAME=aes_decrypt
+LIB_DIR=../../lib/
+LIB=${LIB_DIR}libaes_lib.rlib
+RUSTC=rustc -L ${LIB_DIR}
+
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
+
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
+
+clean:
+	rm -f test ${NAME}
+
+.PHONY: test clean

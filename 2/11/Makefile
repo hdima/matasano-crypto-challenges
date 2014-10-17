@@ -1,22 +1,16 @@
 NAME=aes_oracle
-LIB_NAME=aes_lib
-LIB=lib${LIB_NAME}.rlib
+LIB_DIR=../../lib/
+LIB=${LIB_DIR}libaes_lib.rlib
+RUSTC=rustc -L ${LIB_DIR}
 
-${NAME}: ${NAME}.rs ${LIB}
-	rustc -L . $<
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
 
-${LIB}: ${LIB_NAME}.rs
-	rustc $<
-
-test_lib: ${LIB_NAME}.rs
-	rustc --test -o $@ $<
-	./$@
-
-test: ${NAME}.rs ${LIB}
-	rustc --test -L . -o $@ $<
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
 	./$@
 
 clean:
-	rm -f test test_lib ${NAME} ${LIB}
+	rm -f test ${NAME}
 
 .PHONY: test clean

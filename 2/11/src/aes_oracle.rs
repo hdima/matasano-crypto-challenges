@@ -37,13 +37,8 @@ impl Show for Mode {
 }
 
 #[inline]
-fn random_byte() -> u8 {
-    random::<u8>()
-}
-
-#[inline]
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random_byte())
+    Vec::from_fn(len, |_| random::<u8>())
 }
 
 #[inline]
@@ -53,14 +48,9 @@ fn random_uint(low: uint, high: uint) -> uint {
 
 fn aes_oracle(input: &[u8]) -> (Vec<u8>, Mode) {
     let key = random_bytes(AES_BLOCK_SIZE);
-    let prepend = random_uint(5, 10);
-    let append = random_uint(5, 10);
-    let mut data = input.to_vec();
-    data.reserve_additional(prepend + append);
-    for _ in range(0, prepend) {
-        data.insert(0, random_byte());
-    }
-    data.grow_fn(append, |_| random_byte());
+    let prepend = random_bytes(random_uint(5, 10));
+    let append = random_bytes(random_uint(5, 10));
+    let data = prepend + input.to_vec() + append;
     match random::<Mode>() {
         ECB => (encrypt_aes_ecb(data.as_slice(), key.as_slice()), ECB),
         CBC => {

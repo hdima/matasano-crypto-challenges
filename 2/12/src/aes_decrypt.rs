@@ -8,12 +8,15 @@ extern crate serialize;
 extern crate aes_lib;
 
 use std::str;
-use std::rand::{random, Rng, Rand};
-use std::fmt::{Show, Formatter, FormatError};
-use std::collections::{HashSet};
+use std::rand::random;
+use std::fmt;
+use std::collections::HashMap;
 use serialize::base64::FromBase64;
 
 use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_ecb};
+
+
+type Dict = HashMap<Vec<u8>, u8>;
 
 #[deriving(PartialEq, Eq)]
 enum Mode {
@@ -21,17 +24,8 @@ enum Mode {
     CBC
 }
 
-impl Rand for Mode {
-    fn rand<R: Rng>(rng: &mut R) -> Mode {
-        match rng.gen() {
-            true => ECB,
-            false => CBC
-        }
-    }
-}
-
-impl Show for Mode {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+impl fmt::Show for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ECB => write!(f, "ECB"),
             CBC => write!(f, "CBC"),
@@ -39,31 +33,71 @@ impl Show for Mode {
     }
 }
 
-#[inline]
-fn random_byte() -> u8 {
-    random::<u8>()
+struct Decryptor {
+    unknown: Vec<u8>,
+    key: Vec<u8>,
 }
 
-#[inline]
-fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random_byte())
-}
+impl Decryptor {
+    fn new() -> Decryptor {
+        let unknown = unknown_string();
+        let key = random_bytes(AES_BLOCK_SIZE);
+        Decryptor{unknown: unknown, key: key}
+    }
 
-#[inline]
-fn encrypt(string: &[u8], unknown: &[u8], key: &[u8]) -> Vec<u8> {
-    encrypt_aes_ecb((string.to_vec() + unknown.to_vec()).as_slice(), key)
-}
+    #[inline]
+    fn encrypt(&self, string: &[u8]) -> Vec<u8> {
+        let data = string.to_vec() + self.unknown;
+        encrypt_aes_ecb(data.as_slice(), self.key.as_slice())
+    }
 
-fn guess_aes_mode(unknown: &[u8], key: &[u8], block_size: uint) -> Mode {
-    let s = Vec::from_fn(block_size * 2, |_| 'A' as u8);
-    let enc = encrypt(s.as_slice(), unknown, key);
-    let mut blocks = HashSet::new();
-    for block in enc.as_slice().chunks(block_size) {
-        if !blocks.insert(block) {
-            return ECB;
+    fn guess_block_size(&self) -> Option<uint> {
+        let mut prev = self.encrypt(['A' as u8].as_slice());
+        for len in range(1, 256) {
+            let s = Vec::from_elem(len + 1, 'A' as u8);
+            let enc = self.encrypt(s.as_slice());
+            if prev.slice_to(len) == enc.slice_to(len) {
+                return Some(len);
+            }
+            prev = enc;
+        }
+        None
+    }
+
+    fn guess_aes_mode(&self, block_size: uint) -> Mode {
+        let s = Vec::from_elem(block_size * 2, 'A' as u8);
+        let enc = self.encrypt(s.as_slice());
+        if enc.slice_to(block_size) == enc.slice(block_size, block_size * 2) {
+            ECB
+        } else {
+            CBC
         }
     }
-    CBC
+
+    fn make_dict(&self, block_size: uint) -> Dict {
+        let mut dict = HashMap::with_capacity(256);
+        let mut input = Vec::from_elem(block_size, 'A' as u8);
+        for c in range(0, 255) {
+            *input.last_mut().unwrap() = c;
+            let enc = self.encrypt(input.as_slice());
+            dict.insert(enc.slice_to(block_size).to_vec(), c);
+        }
+        dict
+    }
+
+    fn decrypt(&self, block_size: uint) -> Vec<u8> {
+        let dict = self.make_dict(block_size);
+        let mut input = Vec::from_elem(block_size, 'A' as u8);
+        self.unknown.iter().map(|&c| {
+            *input.last_mut().unwrap() = c;
+            let enc = self.encrypt(input.as_slice());
+            dict[enc.slice_to(block_size).to_vec()]
+            }).collect()
+    }
+}
+
+fn random_bytes(len: uint) -> Vec<u8> {
+    Vec::from_fn(len, |_| random::<u8>())
 }
 
 fn unknown_string() -> Vec<u8> {
@@ -74,49 +108,12 @@ YnkK";
     data.from_base64().unwrap()
 }
 
-fn guess_block_size(unknown: &[u8], key: &[u8]) -> Option<uint> {
-    let mut prev = encrypt(['A' as u8].as_slice(), unknown, key);
-    for len in range(1, 50) {
-        let s = Vec::from_fn(len + 1, |_| 'A' as u8);
-        let enc = encrypt(s.as_slice(), unknown, key);
-        if prev.slice_to(len) == enc.slice_to(len) {
-            return Some(len);
-        }
-        prev = enc;
-    }
-    None
-}
-
-fn make_dict(key: &[u8], block_size: uint) -> Vec<u8> {
-    let mut dict = Vec::from_fn(256, |_| 0);
-    let mut input = Vec::from_fn(block_size, |_| 'A' as u8);
-    for c in range(0, 255) {
-        *input.last_mut().unwrap() = c;
-        let enc = encrypt_aes_ecb(input.as_slice(), key);
-        *dict.get_mut(*enc.last().unwrap() as uint) = c;
-    }
-    dict
-}
-
-fn decrypt(unknown: &[u8], key: &[u8], dict: Vec<u8>,
-           block_size: uint) -> Vec<u8> {
-    let mut input = Vec::from_fn(block_size, |_| 'A' as u8);
-    Vec::from_fn(unknown.len(), |i| {
-        *input.last_mut().unwrap() = *unknown.get(i).unwrap();
-        let enc = encrypt_aes_ecb(input.as_slice(), key);
-        dict[*enc.last().unwrap() as uint]
-        })
-}
-
 fn main() {
-    let unknown = unknown_string();
-    let key = random_bytes(AES_BLOCK_SIZE);
-    let block_size = guess_block_size(unknown.as_slice(),
-                                      key.as_slice()).unwrap();
+    let decryptor = Decryptor::new();
+    let block_size = decryptor.guess_block_size().unwrap();
     println!("Block size: {}", block_size);
-    let mode = guess_aes_mode(unknown.as_slice(), key.as_slice(), block_size);
+    let mode = decryptor.guess_aes_mode(block_size);
     println!("AES mode: {}", mode);
-    let dict = make_dict(key.as_slice(), block_size);
-    let dec = decrypt(unknown.as_slice(), key.as_slice(), dict, block_size);
+    let dec = decryptor.decrypt(block_size);
     println!("Text: {}", str::from_utf8_lossy(dec.as_slice()));
 }

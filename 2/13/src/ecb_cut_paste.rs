@@ -26,7 +26,7 @@ impl Profile {
         }
         let map = [("email".into_string(), email.to_string()),
                    ("uid".into_string(), "10".into_string()),
-                   ("role".into_string(), "user".into_string())].to_vec();
+                   ("role".into_string(), "user".into_string())];
         let encoded = encode_kv(map);
         encrypt_aes_ecb(encoded.as_slice(), self.key.as_slice())
     }
@@ -50,7 +50,7 @@ fn parse_kv(string: &[u8]) -> Vec<(String, String)> {
         }).collect()
 }
 
-fn encode_kv(map: Vec<(String, String)>) -> Vec<u8> {
+fn encode_kv(map: &[(String, String)]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for item in map.iter() {
         bytes.push_all(item.ref0().clone().into_bytes().as_slice());
@@ -80,9 +80,9 @@ mod test {
     fn test_parse_encode_kv() {
         let map = [("foo".into_string(), "bar".into_string()),
                    ("baz".into_string(), "qux".into_string()),
-                   ("zap".into_string(), "zazzle".into_string())].to_vec();
+                   ("zap".into_string(), "zazzle".into_string())];
         let encoded: Vec<u8> = b"foo=bar&baz=qux&zap=zazzle".to_vec();
-        assert_eq!(map, parse_kv(encoded.as_slice()));
+        assert_eq!(map.to_vec(), parse_kv(encoded.as_slice()));
         assert_eq!(encode_kv(map), encoded);
     }
 

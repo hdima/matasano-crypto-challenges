@@ -35,6 +35,15 @@ impl Profile {
         let encoded = decrypt_aes_ecb(encrypted, self.key.as_slice());
         parse_kv(encoded.as_slice())
     }
+
+    #[cfg(not(test))]
+    fn make_admin_profile(&self) -> Vec<u8> {
+        let encrypted = self.profile_for("foooo@bar.com".as_slice());
+        let enc_admin = self.profile_for(concat!("f@bar.com.",
+            "admin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b").as_slice());
+        encrypted.slice_to(32).to_vec()
+            + enc_admin.slice(16, 32).to_vec()
+    }
 }
 
 fn random_bytes(len: uint) -> Vec<u8> {
@@ -65,7 +74,7 @@ fn encode_kv(map: &[(String, String)]) -> Vec<u8> {
 #[cfg(not(test))]
 fn main() {
     let profile = Profile::new();
-    let encrypted = profile.profile_for("bob@microsoft.com".as_slice());
+    let encrypted = profile.make_admin_profile();
     println!("Decrypted: {}", profile.decrypt(encrypted.as_slice()));
 }
 
@@ -89,7 +98,7 @@ mod test {
     #[test]
     fn test_profile() {
         let profile = Profile::new();
-        let email = "bob@microsoft.com";
+        let email = "foo@bar.com";
         let encrypted = profile.profile_for(email.as_slice());
         assert_eq!(profile.decrypt(encrypted.as_slice()),
                    [("email".into_string(), email.into_string()),

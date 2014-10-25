@@ -1,6 +1,6 @@
 NAME=ecb_cut_paste
-LIB_DIR=../../lib/
-LIB=${LIB_DIR}libaes_lib.rlib
+LIB_DIR=../../lib/aes
+LIB=${LIB_DIR}/libaes_lib.rlib
 RUSTC=rustc -L ${LIB_DIR}
 
 ${NAME}: src/${NAME}.rs ${LIB}

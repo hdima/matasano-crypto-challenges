@@ -12,14 +12,14 @@ fn remove_pkcs7_padding(data: &[u8]) -> Option<&[u8]> {
     }
     match data.last() {
         Some(&last) if last < AES_BLOCK_SIZE => {
-            for &c in data.slice_from(len - last as uint).iter() {
-                if c != last {
-                    return None;
-                }
+            let data_len = len - last as uint;
+            if data.slice_from(data_len).iter().all(|&c| c == last) {
+                Some(data.slice_to(data_len))
+            } else {
+                None
             }
-            return Some(data.slice_to(len - last as uint));
         }
-        _ => return None
+        _ => None
     }
 }
 

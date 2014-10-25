@@ -135,6 +135,7 @@ fn init_aes_key(key: &[u8], set_key: |*const u8, c_int, *mut AesKey| -> c_int)
 /*
  * Initialize AES decryption key
  */
+#[inline]
 fn init_aes_decrypt_key(key: &[u8]) -> AesKey {
     init_aes_key(key, |user_key, bits, aes_key| unsafe {
         AES_set_decrypt_key(user_key, bits, aes_key)
@@ -144,6 +145,7 @@ fn init_aes_decrypt_key(key: &[u8]) -> AesKey {
 /*
  * Initialize AES encryption key
  */
+#[inline]
 fn init_aes_encrypt_key(key: &[u8]) -> AesKey {
     init_aes_key(key, |user_key, bits, aes_key| unsafe {
         AES_set_encrypt_key(user_key, bits, aes_key)
@@ -153,19 +155,24 @@ fn init_aes_encrypt_key(key: &[u8]) -> AesKey {
 /*
  * Remove PKCS-7 padding
  */
+#[inline]
 fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
-    let len = data.len();
     match data.last() {
-        Some(&c) if (c as uint) < AES_BLOCK_SIZE =>
-            data.truncate(len - c as uint),
-        _ => ()
+        Some(&last) if (last as uint) < AES_BLOCK_SIZE => {
+            let data_len = data.len() - last as uint;
+            if data.slice_from(data_len).iter().all(|&c| c == last) {
+                data.truncate(data_len);
+            }
+            data
+        }
+        _ => data
     }
-    data
 }
 
 /*
  * PKCS-7 padding
  */
+#[inline]
 fn pkcs7_padding(data: &[u8]) -> Vec<u8> {
     match data.len() % AES_BLOCK_SIZE {
         0 => data.to_vec(),

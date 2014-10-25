@@ -7,7 +7,6 @@ extern crate serialize;
 
 extern crate aes_lib;
 
-use std::str;
 use std::rand::random;
 use std::fmt;
 use std::collections::HashMap;
@@ -115,5 +114,5 @@ fn main() {
     let mode = decryptor.guess_aes_mode(block_size);
     println!("AES mode: {}", mode);
     let dec = decryptor.decrypt(block_size);
-    println!("Text: {}", str::from_utf8_lossy(dec.as_slice()));
+    println!("Text: {}", String::from_utf8(dec).unwrap());
 }

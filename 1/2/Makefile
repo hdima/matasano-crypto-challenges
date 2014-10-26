@@ -1,11 +1,14 @@
-fixed_xor: fixed_xor.rs
-	rustc $<
+NAME=fixed_xor
+RUSTC=rustc
 
-test: fixed_xor.rs
-	rustc --test -o test $<
-	./test
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
+
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test fixed_xor
+	rm -f test ${NAME}
 
 .PHONY: test clean

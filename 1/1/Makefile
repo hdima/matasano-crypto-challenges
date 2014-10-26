@@ -1,11 +1,14 @@
-hex_base64: hex_base64.rs
-	rustc $<
+NAME=hex_base64
+RUSTC=rustc
 
-test: hex_base64.rs
-	rustc --test -o test $<
-	./test
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
+
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test hex_base64
+	rm -f test ${NAME}
 
 .PHONY: test clean

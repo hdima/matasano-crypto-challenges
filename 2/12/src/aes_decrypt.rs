@@ -1,4 +1,4 @@
-/* AES ECB/CBC mode oracle
+/* Byte at a time AES ECB decryption (Simple)
  *
  * Dmitry Vasiliev <dima@hlabs.org>
  */

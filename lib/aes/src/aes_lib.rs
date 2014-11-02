@@ -65,12 +65,20 @@ pub fn encrypt_aes_ecb(orig_data: &[u8], key: &[u8]) -> Vec<u8> {
  * AES CBC decryption
  */
 pub fn decrypt_aes_cbc(encrypted: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+    remove_pkcs7_padding(decrypt_aes_cbc_raw(encrypted, key, iv))
+}
+
+/*
+ * AES CBC decryption without PKCS#7 padding removal
+ */
+pub fn decrypt_aes_cbc_raw(encrypted: &[u8], key: &[u8], iv: &[u8])
+        -> Vec<u8> {
     if iv.len() != AES_BLOCK_SIZE {
-        fail!("Invalid IV size");
+        panic!("Invalid IV size");
     }
     let len = encrypted.len();
     if len % AES_BLOCK_SIZE != 0 {
-        fail!("Invalid size of encrypted data");
+        panic!("Invalid size of encrypted data");
     }
     let mut data = encrypted.to_vec();
     if len > 0 {
@@ -87,7 +95,7 @@ pub fn decrypt_aes_cbc(encrypted: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
             enc_block
         });
     }
-    remove_pkcs7_padding(data)
+    data
 }
 
 /*
@@ -95,7 +103,7 @@ pub fn decrypt_aes_cbc(encrypted: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
  */
 pub fn encrypt_aes_cbc(orig_data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     if iv.len() != AES_BLOCK_SIZE {
-        fail!("Invalid IV size");
+        panic!("Invalid IV size");
     }
     let mut data = pkcs7_padding(orig_data);
     if data.len() > 0 {
@@ -121,14 +129,14 @@ pub fn encrypt_aes_cbc(orig_data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
 fn init_aes_key(key: &[u8], set_key: |*const u8, c_int, *mut AesKey| -> c_int)
         -> AesKey {
     if key.len() != AES_BLOCK_SIZE {
-        fail!("Invalid key size");
+        panic!("Invalid key size");
     }
     // 4 * (AES_MAXNR + 1)
     let mut aes_key = AesKey{rd_key: [0, ..(4 * (14 + 1))], rounds: 0};
     let bits = 8 * AES_BLOCK_SIZE as c_int;
     match set_key(key.as_ptr(), bits, &mut aes_key) {
         0 => aes_key,
-        err => fail!("Unable to init AES key -> {}", err)
+        err => panic!("Unable to init AES key -> {}", err)
     }
 }
 

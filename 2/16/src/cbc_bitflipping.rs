@@ -47,9 +47,9 @@ fn random_bytes(len: uint) -> Vec<u8> {
 fn add_admin(state: &State) -> Vec<u8> {
     let mut enc = state.encrypt("1234567890123456?admin?true");
     // Replace first '?' (0x3f) with ';' (0x3b)
-    *enc.get_mut(32) ^= 4;
+    enc[32] ^= 4;
     // Replace second '?' (0x3f) with '=' (0x3d)
-    *enc.get_mut(38) ^= 2;
+    enc[38] ^= 2;
     enc
 }
 

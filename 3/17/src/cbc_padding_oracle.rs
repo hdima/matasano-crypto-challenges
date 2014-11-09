@@ -49,12 +49,59 @@ impl State {
         let dec = decrypt_aes_cbc_raw(encrypted, self.key.as_slice(),
                                       self.iv.as_slice());
         match dec.last() {
-            Some(&last) if (last as uint) < AES_BLOCK_SIZE => {
+            Some(&last) if last > 0 && (last as uint) <= AES_BLOCK_SIZE => {
                 let data_len = dec.len() - last as uint;
                 dec.slice_from(data_len).iter().all(|&c| c == last)
             }
             _ => false
         }
+    }
+
+    fn decrypt(&self, encrypted: &[u8]) -> Vec<u8> {
+        let blocks: Vec<Vec<u8>> = encrypted.chunks(AES_BLOCK_SIZE).map(
+            |block| self.decrypt_block(block)).collect();
+        blocks.iter().flat_map(|block| block.iter().map(|&c| c)).collect()
+    }
+
+    fn decrypt_block(&self, block: &[u8]) -> Vec<u8> {
+        let mut dec = Vec::from_elem(AES_BLOCK_SIZE, 0);
+        let mut tmp = Vec::from_elem(AES_BLOCK_SIZE, 0) + block;
+        let mut i = 1;
+        for c in range(0u16, 256) {
+            tmp[AES_BLOCK_SIZE - i] = c as u8;
+            if self.is_padding_valid(tmp.as_slice()) {
+                break;
+            }
+        }
+        while i < AES_BLOCK_SIZE {
+            let is_padding_longer = range(0u16, 256).any(|c| {
+                tmp[AES_BLOCK_SIZE - i - 1] = c as u8;
+                !self.is_padding_valid(tmp.as_slice())
+                });
+            tmp[AES_BLOCK_SIZE - i - 1] = 0;
+            if !is_padding_longer {
+                break;
+            }
+            i += 1;
+        }
+        for j in range(1, i + 1) {
+            dec[AES_BLOCK_SIZE - j] = i as u8 ^ tmp[AES_BLOCK_SIZE - j];
+        }
+        for j in range(i, AES_BLOCK_SIZE) {
+            let next = j + 1;
+            for k in range(1, next) {
+                let c = tmp[AES_BLOCK_SIZE - k];
+                tmp[AES_BLOCK_SIZE - k] = c ^ j as u8 ^ next as u8;
+            }
+            for c in range(0u16, 256) {
+                tmp[AES_BLOCK_SIZE - next] = c as u8;
+                if self.is_padding_valid(tmp.as_slice()) {
+                    dec[AES_BLOCK_SIZE - next] = next as u8 ^ c as u8;
+                    break;
+                }
+            }
+        }
+        dec
     }
 }
 
@@ -65,5 +112,6 @@ fn random_bytes(len: uint) -> Vec<u8> {
 fn main() {
     let state = State::new();
     let enc = state.encrypt();
-    println!("Encrypted: {}", String::from_utf8_lossy(enc.as_slice()));
+    let dec = state.decrypt(enc.as_slice());
+    println!("Encrypted: {}", String::from_utf8_lossy(dec.as_slice()));
 }

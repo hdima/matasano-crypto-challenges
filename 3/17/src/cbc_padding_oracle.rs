@@ -10,7 +10,8 @@ extern crate aes_lib;
 use serialize::base64::FromBase64;
 use std::rand::random;
 
-use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_cbc, decrypt_aes_cbc_raw};
+use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_cbc, decrypt_aes_cbc_raw,
+    remove_pkcs7_padding};
 
 
 static LINES: [&'static str, ..10] = [
@@ -23,7 +24,7 @@ static LINES: [&'static str, ..10] = [
     "MDAwMDA2QW5kIGEgaGlnaCBoYXQgd2l0aCBhIHNvdXBlZCB1cCB0ZW1wbw==",
     "MDAwMDA3SSdtIG9uIGEgcm9sbCwgaXQncyB0aW1lIHRvIGdvIHNvbG8=",
     "MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g=",
-    "MDAwMDA5aXRoIG15IHJhZy10b3AgZG93biBzbyBteSBoYWlyIGNhbiBibG93 ",
+    "MDAwMDA5aXRoIG15IHJhZy10b3AgZG93biBzbyBteSBoYWlyIGNhbiBibG93",
     ];
 
 struct State {
@@ -57,10 +58,13 @@ impl State {
         }
     }
 
-    fn decrypt(&self, encrypted: &[u8]) -> Vec<u8> {
-        let blocks: Vec<Vec<u8>> = encrypted.chunks(AES_BLOCK_SIZE).map(
+    fn decrypt(&self, enc: &[u8]) -> Vec<u8> {
+        let blocks: Vec<Vec<u8>> = enc.chunks(AES_BLOCK_SIZE).map(
             |block| self.decrypt_block(block)).collect();
-        blocks.iter().flat_map(|block| block.iter().map(|&c| c)).collect()
+        let enc_it = self.iv.iter().chain(enc.iter());
+        let dec_it = blocks.iter().flat_map(|block| block.iter());
+        let dec = enc_it.zip(dec_it).map(|(&c1, &c2)| c1 ^ c2).collect();
+        remove_pkcs7_padding(dec)
     }
 
     fn decrypt_block(&self, block: &[u8]) -> Vec<u8> {

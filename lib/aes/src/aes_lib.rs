@@ -164,7 +164,7 @@ fn init_aes_encrypt_key(key: &[u8]) -> AesKey {
  * Remove PKCS-7 padding
  */
 #[inline]
-fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
+pub fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
     match data.last() {
         Some(&last) if last > 0 && (last as uint) < AES_BLOCK_SIZE => {
             let data_len = data.len() - last as uint;

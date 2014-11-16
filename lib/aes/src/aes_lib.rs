@@ -1,4 +1,4 @@
-/* AES-128 ECB/CBC library
+/* AES-128 ECB/CBC/CTR library
  *
  * Dmitry Vasiliev <dima@hlabs.org>
  */
@@ -7,6 +7,8 @@
 #![crate_type="lib"]
 
 extern crate libc;
+
+use std::io::MemWriter;
 
 use libc::{c_int, c_uint};
 
@@ -36,7 +38,7 @@ extern {
  */
 pub fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> Vec<u8> {
     let mut data = encrypted.to_vec();
-    if data.len() > 0 {
+    if !data.is_empty() {
         let aes_key = init_aes_decrypt_key(key);
         for block in data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE) {
             // Decrypt in-place
@@ -51,7 +53,7 @@ pub fn decrypt_aes_ecb(encrypted: &[u8], key: &[u8]) -> Vec<u8> {
  */
 pub fn encrypt_aes_ecb(orig_data: &[u8], key: &[u8]) -> Vec<u8> {
     let mut data = pkcs7_padding(orig_data);
-    if data.len() > 0 {
+    if !data.is_empty() {
         let aes_key = init_aes_encrypt_key(key);
         for block in data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE) {
             // Encrypt in-place
@@ -76,12 +78,11 @@ pub fn decrypt_aes_cbc_raw(encrypted: &[u8], key: &[u8], iv: &[u8])
     if iv.len() != AES_BLOCK_SIZE {
         panic!("Invalid IV size");
     }
-    let len = encrypted.len();
-    if len % AES_BLOCK_SIZE != 0 {
+    if encrypted.len() % AES_BLOCK_SIZE != 0 {
         panic!("Invalid size of encrypted data");
     }
     let mut data = encrypted.to_vec();
-    if len > 0 {
+    if !data.is_empty() {
         let aes_key = init_aes_decrypt_key(key);
         let chunks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
         let mut combined_chunks = encrypted.chunks(AES_BLOCK_SIZE).zip(chunks);
@@ -106,7 +107,7 @@ pub fn encrypt_aes_cbc(orig_data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
         panic!("Invalid IV size");
     }
     let mut data = pkcs7_padding(orig_data);
-    if data.len() > 0 {
+    if !data.is_empty() {
         let aes_key = init_aes_encrypt_key(key);
         let mut chunks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
         chunks.fold(iv, |prev, block| {
@@ -120,6 +121,45 @@ pub fn encrypt_aes_cbc(orig_data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
         });
     }
     data
+}
+
+/*
+ * AES CTR encryption
+ */
+pub fn encrypt_aes_ctr(orig_data: &[u8], key: &[u8], nonce: u64) -> Vec<u8> {
+    // Encryption is the same as decryption
+    decrypt_aes_ctr(orig_data, key, nonce)
+}
+
+/*
+ * AES CTR decryption
+ */
+pub fn decrypt_aes_ctr(encrypted: &[u8], key: &[u8], nonce: u64) -> Vec<u8> {
+    let mut data = encrypted.to_vec();
+    if !data.is_empty() {
+        let aes_key = init_aes_encrypt_key(key);
+        let nonce_str = u64_to_vec(nonce);
+        let blocks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
+        for (i, block) in blocks.enumerate() {
+            let mut input = nonce_str + u64_to_vec(i as u64);
+            // Encrypt in-place
+            unsafe {AES_encrypt(input.as_ptr(), input.as_mut_ptr(), &aes_key)};
+            // XOR encrypted nonce/counter with the encrypted block in-place
+            for (&c1, c2) in input.iter().zip(block.iter_mut()) {
+                *c2 ^= c1
+            }
+        }
+    }
+    data
+}
+
+#[inline]
+fn u64_to_vec(value: u64) -> Vec<u8> {
+    let mut buf = MemWriter::with_capacity(8);
+    match buf.write_le_u64(value) {
+        Ok(()) => buf.unwrap(),
+        Err(err) => panic!("Memory write error: {}", err)
+    }
 }
 
 /*

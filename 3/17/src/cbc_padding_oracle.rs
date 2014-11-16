@@ -71,12 +71,14 @@ impl State {
         let mut dec = Vec::from_elem(AES_BLOCK_SIZE, 0);
         let mut tmp = Vec::from_elem(AES_BLOCK_SIZE, 0) + block;
         let mut i = 1;
+        // Guess the last character
         for c in range(0u16, 256) {
             tmp[AES_BLOCK_SIZE - i] = c as u8;
             if self.is_padding_valid(tmp.as_slice()) {
                 break;
             }
         }
+        // Guess the size of the padding
         while i < AES_BLOCK_SIZE {
             let is_padding_longer = range(0u16, 256).any(|c| {
                 tmp[AES_BLOCK_SIZE - i - 1] = c as u8;
@@ -91,6 +93,7 @@ impl State {
         for j in range(1, i + 1) {
             dec[AES_BLOCK_SIZE - j] = i as u8 ^ tmp[AES_BLOCK_SIZE - j];
         }
+        // Guess all the characters
         for j in range(i, AES_BLOCK_SIZE) {
             let next = j + 1;
             for k in range(1, next) {

@@ -26,8 +26,8 @@ enum Mode {
 impl fmt::Show for Mode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ECB => write!(f, "ECB"),
-            CBC => write!(f, "CBC"),
+            Mode::ECB => write!(f, "ECB"),
+            Mode::CBC => write!(f, "CBC"),
         }
     }
 }
@@ -51,10 +51,11 @@ impl Decryptor {
     }
 
     fn guess_block_size(&self) -> Option<uint> {
-        let mut prev = self.encrypt(['A' as u8].as_slice());
-        for len in range(1, 256) {
-            let s = Vec::from_elem(len + 1, 'A' as u8);
-            let enc = self.encrypt(s.as_slice());
+        static MAX_KEY_SIZE: uint = 256;
+        let data = Vec::from_elem(MAX_KEY_SIZE - 1, 0u8);
+        let mut prev = self.encrypt(data.slice_to(1));
+        for len in range(1, MAX_KEY_SIZE) {
+            let enc = self.encrypt(data.slice_to(len + 1));
             if prev.slice_to(len) == enc.slice_to(len) {
                 return Some(len);
             }
@@ -64,34 +65,31 @@ impl Decryptor {
     }
 
     fn guess_aes_mode(&self, block_size: uint) -> Mode {
-        let s = Vec::from_elem(block_size * 2, 'A' as u8);
-        let enc = self.encrypt(s.as_slice());
-        if enc.slice_to(block_size) == enc.slice(block_size, block_size * 2) {
-            ECB
-        } else {
-            CBC
+        let s = Vec::from_elem(block_size * 2, 0u8);
+        let e = self.encrypt(s.as_slice());
+        match e.slice_to(block_size) == e.slice(block_size, block_size * 2) {
+            true => Mode::ECB,
+            false => Mode::CBC
         }
     }
 
     fn make_dict(&self, block_size: uint) -> Dict {
-        let mut dict = HashMap::with_capacity(256);
-        let mut input = Vec::from_elem(block_size, 'A' as u8);
-        for c in range(0, 255) {
+        let mut input = Vec::from_elem(block_size, 0u8);
+        range(0, 255).map(|c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
-            dict.insert(enc.slice_to(block_size).to_vec(), c);
-        }
-        dict
+            (enc.slice_to(block_size).to_vec(), c)
+        }).collect()
     }
 
     fn decrypt(&self, block_size: uint) -> Vec<u8> {
         let dict = self.make_dict(block_size);
-        let mut input = Vec::from_elem(block_size, 'A' as u8);
+        let mut input = Vec::from_elem(block_size, 0u8);
         self.unknown.iter().map(|&c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
             dict[enc.slice_to(block_size).to_vec()]
-            }).collect()
+        }).collect()
     }
 }
 
@@ -100,11 +98,10 @@ fn random_bytes(len: uint) -> Vec<u8> {
 }
 
 fn unknown_string() -> Vec<u8> {
-    let data = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+    "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
 aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
 dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
-YnkK";
-    data.from_base64().unwrap()
+YnkK".from_base64().unwrap()
 }
 
 fn main() {

@@ -6,7 +6,8 @@
 extern crate aes_lib;
 
 use std::rand::{random, task_rng, Rng, Rand};
-use std::fmt::{Show, Formatter, FormatError};
+use std::fmt;
+use std::fmt::{Show, Formatter};
 use std::collections::HashSet;
 use std::io::File;
 
@@ -21,17 +22,17 @@ enum Mode {
 impl Rand for Mode {
     fn rand<R: Rng>(rng: &mut R) -> Mode {
         match rng.gen() {
-            true => ECB,
-            false => CBC
+            true => Mode::ECB,
+            false => Mode::CBC
         }
     }
 }
 
 impl Show for Mode {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match *self {
-            ECB => write!(f, "ECB"),
-            CBC => write!(f, "CBC"),
+            Mode::ECB => write!(f, "ECB"),
+            Mode::CBC => write!(f, "CBC"),
         }
     }
 }
@@ -52,23 +53,22 @@ fn aes_oracle(input: &[u8]) -> (Vec<u8>, Mode) {
     let append = random_bytes(random_uint(5, 10));
     let data = prepend + input.to_vec() + append;
     match random::<Mode>() {
-        ECB => (encrypt_aes_ecb(data.as_slice(), key.as_slice()), ECB),
-        CBC => {
+        Mode::ECB =>
+            (encrypt_aes_ecb(data.as_slice(), key.as_slice()), Mode::ECB),
+        Mode::CBC => {
             let iv = random_bytes(AES_BLOCK_SIZE);
             (encrypt_aes_cbc(data.as_slice(), key.as_slice(),
-                             iv.as_slice()), CBC)
+                             iv.as_slice()), Mode::CBC)
         }
     }
 }
 
 fn guess_aes_mode(buffer: &[u8]) -> Mode {
     let mut blocks = HashSet::new();
-    for block in buffer.chunks(AES_BLOCK_SIZE) {
-        if !blocks.insert(block) {
-            return ECB;
-        }
+    match buffer.chunks(AES_BLOCK_SIZE).any(|b| !blocks.insert(b)) {
+        true => Mode::ECB,
+        false => Mode::CBC
     }
-    CBC
 }
 
 fn read_example_text() -> Vec<u8> {

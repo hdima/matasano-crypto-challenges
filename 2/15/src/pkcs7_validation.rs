@@ -13,10 +13,9 @@ fn remove_pkcs7_padding(data: &[u8]) -> Option<&[u8]> {
     match data.last() {
         Some(&last) if last > 0 && last < AES_BLOCK_SIZE => {
             let data_len = len - last as uint;
-            if data.slice_from(data_len).iter().all(|&c| c == last) {
-                Some(data.slice_to(data_len))
-            } else {
-                None
+            match data.slice_from(data_len).iter().all(|&c| c == last) {
+                true => Some(data.slice_to(data_len)),
+                false => None
             }
         }
         _ => None

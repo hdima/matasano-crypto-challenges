@@ -17,11 +17,11 @@ static ENCODED: &'static str =
 
 fn main() {
     let encrypted = ENCODED.from_base64().unwrap();
-    let key = "YELLOW SUBMARINE".into_string().into_bytes();
+    let key = b"YELLOW SUBMARINE";
     let nonce = 0u64;
-    let dec = decrypt_aes_ctr(encrypted.as_slice(), key.as_slice(), nonce);
+    let dec = decrypt_aes_ctr(encrypted.as_slice(), key, nonce);
     println!("Decrypted: {}", String::from_utf8_lossy(dec.as_slice()));
-    let enc = encrypt_aes_ctr(dec.as_slice(), key.as_slice(), nonce);
+    let enc = encrypt_aes_ctr(dec.as_slice(), key, nonce);
     assert_eq!(enc, encrypted);
     println!("Successfully encrypted!");
 }

@@ -1,11 +1,14 @@
 NAME=aes_cbc
+LIB_DIR=../../lib/aes
+LIB=${LIB_DIR}/libaes_lib.rlib
+RUSTC=rustc -L ${LIB_DIR}
 
-${NAME}: ${NAME}.rs
-	rustc $<
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
 
-test: ${NAME}.rs
-	rustc --test -o test $<
-	./test
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
 	rm -f test ${NAME}

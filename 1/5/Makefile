@@ -1,11 +1,14 @@
-repeating_xor: repeating_xor.rs
-	rustc $<
+NAME=repeating_xor
+RUSTC=rustc
 
-test: repeating_xor.rs
-	rustc --test -o test $<
-	./test
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
+
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test repeating_xor
+	rm -f test ${NAME}
 
 .PHONY: test clean

@@ -39,39 +39,35 @@ impl Decryptor {
     // Return start position for the first AES block after the prefix and
     // difference between the start position and the end of the prefix
     fn find_start_pos(&self) -> (uint, uint) {
-        // Start from 2 AES blocks so we can find duplicates
-        let mut data = Vec::from_elem(AES_BLOCK_SIZE * 2, 'A' as u8);
-        loop {
-            let enc = self.encrypt(data.as_slice());
+        static MAX_DATA_SIZE: uint = 64 * 1024;
+        let data = Vec::from_elem(MAX_DATA_SIZE, 0u8);
+        for n in range(0, MAX_DATA_SIZE) {
+            // Start from 2 AES blocks so we can find duplicates
+            let enc = self.encrypt(data.slice_to(AES_BLOCK_SIZE * 2 + n));
             let chunks = enc.as_slice().chunks(AES_BLOCK_SIZE);
             let tail = enc.slice_from(AES_BLOCK_SIZE);
-            let pairs = chunks.zip(tail.chunks(AES_BLOCK_SIZE));
-            for (i, (first, second)) in pairs.enumerate() {
-                if first == second {
-                    return (i * AES_BLOCK_SIZE,
-                            data.len() - AES_BLOCK_SIZE * 2);
-                }
+            let mut pairs = chunks.zip(tail.chunks(AES_BLOCK_SIZE));
+            match pairs.position(|(first, second)| first == second) {
+                Some(i) => return (i * AES_BLOCK_SIZE, n),
+                None => ()
             }
-            // Extend test blocks by one character
-            data.push('A' as u8);
         }
+        panic!("Unable to find the start position");
     }
 
     fn make_dict(&self, start: uint, diff: uint) -> Dict {
-        let mut dict = HashMap::with_capacity(256);
-        let mut input = Vec::from_elem(AES_BLOCK_SIZE + diff, 'A' as u8);
-        for c in range(0, 255) {
+        let mut input = Vec::from_elem(AES_BLOCK_SIZE + diff, 0u8);
+        range(0, 255).map(|c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
-            dict.insert(enc.slice(start, start + AES_BLOCK_SIZE).to_vec(), c);
-        }
-        dict
+            (enc.slice(start, start + AES_BLOCK_SIZE).to_vec(), c)
+        }).collect()
     }
 
     fn decrypt(&self) -> Vec<u8> {
         let (start, diff) = self.find_start_pos();
         let dict = self.make_dict(start, diff);
-        let mut input = Vec::from_elem(AES_BLOCK_SIZE + diff, 'A' as u8);
+        let mut input = Vec::from_elem(AES_BLOCK_SIZE + diff, 0u8);
         self.unknown.iter().map(|&c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
@@ -85,11 +81,10 @@ fn random_bytes(len: uint) -> Vec<u8> {
 }
 
 fn unknown_string() -> Vec<u8> {
-    let data = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+    "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
 aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
 dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
-YnkK";
-    data.from_base64().unwrap()
+YnkK".from_base64().unwrap()
 }
 
 fn main() {

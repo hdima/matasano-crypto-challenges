@@ -3,16 +3,15 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern mod single_char_xor_lib;
+extern crate serialize;
 
-extern mod extra;
+extern crate single_char_xor_lib;
 
-use std::str;
 use std::path::Path;
 use std::io::fs::File;
-use std::io::buffered::BufferedReader;
-use extra::hex::FromHex;
-use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
+use std::io::BufferedReader;
+use serialize::hex::FromHex;
+use single_char_xor_lib::{decrypt, SingleCharKey};
 
 /*
  * Find a line encrypted with single-character XOR cipher
@@ -20,15 +19,15 @@ use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
 fn find_encrypted_line(file: File) {
     let mut reader = BufferedReader::new(file);
     for (n, line) in reader.lines().enumerate() {
-        let encrypted = line.from_hex().unwrap();
-        match decrypt(encrypted) {
-            SingleCharKeyFound(key, decrypted) => {
+        let encrypted = line.unwrap().from_hex().unwrap();
+        match decrypt(encrypted.as_slice()) {
+            SingleCharKey::Found(key, decrypted) => {
                 println!("Found encrypted string at line {}:\n\
                          Key  => '{}' ({})\n\
                          Text => \"{}\"", n + 1, key as char, key,
-                         str::from_utf8_owned(decrypted));
+                         String::from_utf8(decrypted).unwrap());
             }
-            SingleCharKeyNotFound => ()
+            SingleCharKey::NotFound => ()
         }
     }
 }
@@ -39,7 +38,7 @@ fn find_encrypted_line(file: File) {
 fn main() {
     let path = Path::new("strings.txt");
     match File::open(&path) {
-        Some(file) => find_encrypted_line(file),
-        None => fail!("Unable to open strings.txt")
+        Ok(file) => find_encrypted_line(file),
+        Err(err) => panic!("Unable to open strings.txt: {}", err)
     }
 }

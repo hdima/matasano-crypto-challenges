@@ -1,12 +1,16 @@
-find_single_char_xor: find_single_char_xor.rs libsingle_char_xor_lib-*.so
-	rustc -L . $<
+NAME=find_single_char_xor
+LIB_DIR=../../lib/single_char_xor
+LIB=${LIB_DIR}/libsingle_char_xor_lib.rlib
+RUSTC=rustc -L ${LIB_DIR}
 
-libsingle_char_xor_lib-*.so: ../3/single_char_xor_lib.rs
-	rustc --out-dir . $<
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
 
-test:
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test find_single_char_xor libsingle_char_xor_lib-*.so
+	rm -f test ${NAME}
 
 .PHONY: test clean

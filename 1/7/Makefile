@@ -1,11 +1,16 @@
-aes_ecb_decrypter: aes_ecb_decrypter.rs
-	rustc $<
+NAME=aes_ecb_decrypter
+LIB_DIR=../../lib/aes
+LIB=${LIB_DIR}/libaes_lib.rlib
+RUSTC=rustc -L ${LIB_DIR}
 
-test: aes_ecb_decrypter.rs
-	rustc --test -o test $<
-	./test
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
+
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test aes_ecb_decrypter
+	rm -f test ${NAME}
 
 .PHONY: test clean

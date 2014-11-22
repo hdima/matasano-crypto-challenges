@@ -7,6 +7,7 @@
 #![crate_type="lib"]
 
 extern crate libc;
+extern crate serialize;
 
 use std::io::MemWriter;
 
@@ -236,8 +237,33 @@ fn pkcs7_padding(data: &[u8]) -> Vec<u8> {
  */
 #[cfg(test)]
 mod test {
+    use serialize::hex::FromHex;
     use super::{encrypt_aes_ecb, decrypt_aes_ecb};
     use super::{encrypt_aes_cbc, decrypt_aes_cbc};
+
+    #[test]
+    fn test_aes_ecb_decrypt() {
+        let key = "00000000000000000000000000000000".from_hex().unwrap();
+        let ciphertext = "0336763e966d92595a567cc9ce537f5e".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext.as_slice(), key.as_slice()),
+            "f34481ec3cc627bacd5dc3fb08f273e6".from_hex().unwrap());
+
+        let key2 = "10a58869d74be5a374cf867cfb473859".from_hex().unwrap();
+        let ciphertext2 = "6d251e6944b051e04eaa6fb4dbf78465".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext2.as_slice(), key2.as_slice()),
+            "00000000000000000000000000000000".from_hex().unwrap());
+
+        let key3 = "80000000000000000000000000000000".from_hex().unwrap();
+        let ciphertext3 = "0edd33d3c621e546455bd8ba1418bec8".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext3.as_slice(), key3.as_slice()),
+            "00000000000000000000000000000000".from_hex().unwrap());
+
+        let key4 = "00000000000000000000000000000000".from_hex().unwrap();
+        let ciphertext4 = "3ad78e726c1ec02b7ebfe92b23d9ec34".from_hex().unwrap();
+        assert_eq!(decrypt_aes_ecb(ciphertext4.as_slice(), key4.as_slice()),
+            "80000000000000000000000000000000".from_hex().unwrap());
+
+    }
 
     #[test]
     fn test_aes_ecb() {

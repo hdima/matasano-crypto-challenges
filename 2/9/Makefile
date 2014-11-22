@@ -1,11 +1,14 @@
-pkcs7: pkcs7.rs
-	rustc $<
+NAME=pkcs7
+RUSTC=rustc
 
-test: pkcs7.rs
-	rustc --test -o test $<
-	./test
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
+
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
+	./$@
 
 clean:
-	rm -f test pkcs7
+	rm -f test ${NAME}
 
 .PHONY: test clean

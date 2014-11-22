@@ -7,12 +7,12 @@
 fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
     let len = data.len();
     if len > size as uint {
-        fail!("Invalid block size: {}", size);
+        panic!("Invalid block size: {}", size);
     } else if len == size as uint {
-        data.into_vec()
+        data.to_vec()
     } else {
         let pad = size - len as u8;
-        data.into_vec() + Vec::from_elem(pad as uint, pad)
+        data.to_vec() + Vec::from_elem(pad as uint, pad)
     }
 }
 
@@ -21,7 +21,7 @@ fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
  */
 #[cfg(not(test))]
 fn main() {
-    let input = "YELLOW SUBMARINE".as_bytes();
+    let input = b"YELLOW SUBMARINE";
     println!("Input     => {}", input);
     println!("PKCS#7    => {}", pkcs7(input, 20));
 }
@@ -35,8 +35,8 @@ mod test {
 
     #[test]
     fn test_pkcs7() {
-        let input = "YELLOW SUBMARINE".as_bytes();
-        assert_eq!("YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec(),
+        let input = b"YELLOW SUBMARINE";
+        assert_eq!(b"YELLOW SUBMARINE\x04\x04\x04\x04".to_vec(),
                    pkcs7(input, 20));
     }
 }

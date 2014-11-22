@@ -1,18 +1,16 @@
 NAME=decrypt_repeating_xor
-LIB_NAME=single_char_xor_lib
-LIB=lib${LIB_NAME}.rlib
+LIB_DIR=../../lib/single_char_xor
+LIB=${LIB_DIR}/libsingle_char_xor_lib.rlib
+RUSTC=rustc -L ${LIB_DIR}
 
-${NAME}: ${NAME}.rs ${LIB}
-	rustc -L . $<
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
 
-${LIB}: ../3/${LIB_NAME}.rs
-	rustc --out-dir . $<
-
-test: ${NAME}.rs ${LIB}
-	rustc --test -L . -o $@ $<
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
 	./$@
 
 clean:
-	rm -f test ${NAME} ${LIB}
+	rm -f test ${NAME}
 
 .PHONY: test clean

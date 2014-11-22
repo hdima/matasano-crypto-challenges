@@ -1,10 +1,11 @@
 NAME=find_ecb_encrypted
+RUSTC=rustc
 
-${NAME}: ${NAME}.rs
-	rustc $<
+${NAME}: src/${NAME}.rs ${LIB}
+	${RUSTC} $<
 
-test: ${NAME}.rs
-	rustc --test -o $@ $<
+test: src/${NAME}.rs ${LIB}
+	${RUSTC} --test -o $@ $<
 	./$@
 
 clean:

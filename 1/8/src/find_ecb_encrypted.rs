@@ -27,18 +27,16 @@ enum ECBEncryptedLine {
  */
 #[cfg(not(test))]
 fn find_ecb_encrypted_line(file: File) -> ECBEncryptedLine {
-
     let mut reader = BufferedReader::new(file);
     for (line_num, result) in reader.lines().enumerate() {
         let line = result.unwrap();
         let bin = line.as_slice().from_hex().unwrap();
         if is_buffer_ecb_encrypted(bin.as_slice()) {
             // Return the first found line.
-            // Also convert 0-based line number to 1-based
-            return Found(line_num + 1, line);
+            return ECBEncryptedLine::Found(line_num + 1, line);
         }
     }
-    NotFound
+    ECBEncryptedLine::NotFound
 }
 
 /*
@@ -46,15 +44,9 @@ fn find_ecb_encrypted_line(file: File) -> ECBEncryptedLine {
  */
 #[inline]
 fn is_buffer_ecb_encrypted(buffer: &[u8]) -> bool {
-    static ecb_block_size: uint = 16;
-
+    static ECB_BLOCK_SIZE: uint = 16;
     let mut blocks = HashSet::new();
-    for block in buffer.chunks(ecb_block_size) {
-        if !blocks.insert(block) {
-            return true;
-        }
-    }
-    false
+    buffer.chunks(ECB_BLOCK_SIZE).any(|b| !blocks.insert(b))
 }
 
 /*
@@ -65,12 +57,13 @@ fn main() {
     let path = Path::new("ciphertexts.txt");
     let result = match File::open(&path) {
         Ok(file) => find_ecb_encrypted_line(file),
-        Err(err) => fail!("Unable to open {}: {}", path.display(), err)
+        Err(err) => panic!("Unable to open {}: {}", path.display(), err)
     };
     match result {
-        Found(line_num, text) => println!("Found ECB encrypted text at \
-                                           line {}: {}", line_num, text),
-        NotFound => println!("No ECB encrypted text found")
+        ECBEncryptedLine::Found(line_num, text) =>
+            println!("Found ECB encrypted text at line {}: {}",
+                     line_num, text),
+        ECBEncryptedLine::NotFound => println!("No ECB encrypted text found")
     }
 }
 

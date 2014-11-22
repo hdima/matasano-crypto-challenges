@@ -240,6 +240,7 @@ mod test {
     use serialize::hex::FromHex;
     use super::{encrypt_aes_ecb, decrypt_aes_ecb};
     use super::{encrypt_aes_cbc, decrypt_aes_cbc};
+    use super::{encrypt_aes_ctr, decrypt_aes_ctr};
 
     #[test]
     fn test_aes_ecb_decrypt() {
@@ -267,23 +268,30 @@ mod test {
 
     #[test]
     fn test_aes_ecb() {
-        let key = "1234567890123456".into_string().into_bytes();
-        let data = "Test data".into_string().into_bytes();
-        let encrypted = encrypt_aes_ecb(data.as_slice(), key.as_slice());
-        assert_eq!(data.as_slice(),
-                   decrypt_aes_ecb(encrypted.as_slice(),
-                                   key.as_slice()).as_slice());
+        let key = b"1234567890123456";
+        let data = b"test test test test test test test test test";
+        let encrypted = encrypt_aes_ecb(data, key);
+        assert_eq!(data,
+                   decrypt_aes_ecb(encrypted.as_slice(), key).as_slice());
     }
 
     #[test]
     fn test_aes_cbc() {
-        let key = "1234567890123456".into_string().into_bytes();
-        let iv = "6543210987654321".into_string().into_bytes();
-        let data = "Test data".into_string().into_bytes();
-        let encrypted = encrypt_aes_cbc(data.as_slice(), key.as_slice(),
-                                        iv.as_slice());
-        assert_eq!(data.as_slice(),
-                   decrypt_aes_cbc(encrypted.as_slice(),
-                                   key.as_slice(), iv.as_slice()).as_slice());
+        let key = b"1234567890123456";
+        let iv = b"6543210987654321";
+        let data = b"test test test test test test test test test";
+        let encrypted = encrypt_aes_cbc(data, key, iv);
+        assert_eq!(data,
+                   decrypt_aes_cbc(encrypted.as_slice(), key, iv).as_slice());
+    }
+
+    #[test]
+    fn test_aes_ctr() {
+        let key = b"1234567890123456";
+        let nonce = 12345u64;
+        let data = b"test test test test test test test test test";
+        let encrypted = encrypt_aes_ctr(data, key, nonce);
+        assert_eq!(data, decrypt_aes_ctr(encrypted.as_slice(),
+                                         key, nonce).as_slice());
     }
 }

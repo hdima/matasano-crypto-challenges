@@ -3,12 +3,11 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern crate debug;
 extern crate serialize;
 
 extern crate single_char_xor_lib;
 
-use single_char_xor_lib::{decrypt, SingleCharKeyFound, SingleCharKeyNotFound};
+use single_char_xor_lib::{decrypt, SingleCharKey};
 use serialize::hex::FromHex;
 
 /*
@@ -16,18 +15,17 @@ use serialize::hex::FromHex;
  */
 fn main() {
     let input = "1b37373331363f78151b7f2b783431333d78397828372d363c\
-                  78373e783a393b3736";
+                 78373e783a393b3736";
     let encrypted = input.from_hex().unwrap();
-
     println!("Input        => \"{}\"\n\
-              Binary input => {:?}\n",
-             input, encrypted.as_slice());
+              Binary input => {}",
+             input, encrypted);
     match decrypt(encrypted.as_slice()) {
-        SingleCharKeyFound(key, decrypted) => {
+        SingleCharKey::Found(key, decrypted) => {
             println!("Key  => '{}', ({})\n\
                       Text => \"{}\"",
                      key as char, key, String::from_utf8(decrypted).unwrap());
         }
-        SingleCharKeyNotFound => fail!("No decryption key found")
+        SingleCharKey::NotFound => panic!("No decryption key found")
     }
 }

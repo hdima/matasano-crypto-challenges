@@ -22,12 +22,12 @@ impl Profile {
 
     fn profile_for(&self, email: &str) -> Vec<u8> {
         if email.contains("&") || email.contains("=") {
-            fail!("Invalid character in email: {}", email);
+            panic!("Invalid character in email: {}", email);
         }
         let map = [("email".into_string(), email.to_string()),
                    ("uid".into_string(), "10".into_string()),
                    ("role".into_string(), "user".into_string())];
-        let encoded = encode_kv(map);
+        let encoded = encode_kv(&map);
         encrypt_aes_ecb(encoded.as_slice(), self.key.as_slice())
     }
 
@@ -38,9 +38,9 @@ impl Profile {
 
     #[cfg(not(test))]
     fn make_admin_profile(&self) -> Vec<u8> {
-        let encrypted = self.profile_for("foooo@bar.com".as_slice());
+        let encrypted = self.profile_for("foooo@bar.com");
         let enc_admin = self.profile_for(concat!("f@bar.com.",
-            "admin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b").as_slice());
+            "admin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"));
         encrypted.slice_to(32).to_vec()
             + enc_admin.slice(16, 32).to_vec()
     }
@@ -67,6 +67,7 @@ fn encode_kv(map: &[(String, String)]) -> Vec<u8> {
         bytes.push_all(item.ref1().clone().into_bytes().as_slice());
         bytes.push(b'&');
     }
+    // Remove last '&'
     bytes.pop();
     bytes
 }
@@ -92,7 +93,7 @@ mod test {
                    ("zap".into_string(), "zazzle".into_string())];
         let encoded: Vec<u8> = b"foo=bar&baz=qux&zap=zazzle".to_vec();
         assert_eq!(map.to_vec(), parse_kv(encoded.as_slice()));
-        assert_eq!(encode_kv(map), encoded);
+        assert_eq!(encode_kv(&map), encoded);
     }
 
     #[test]

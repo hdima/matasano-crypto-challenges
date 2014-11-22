@@ -13,7 +13,7 @@ use serialize::hex::{FromHex, ToHex};
  */
 fn xor_buffers(s1: &[u8], s2: &[u8]) -> Vec<u8> {
     if s1.len() != s2.len() {
-        fail!("Not equal length of input buffers")
+        panic!("Not equal length of input buffers")
     }
     s1.iter().zip(s2.iter()).map(|(&c1, &c2)| c1 ^ c2).collect()
 }

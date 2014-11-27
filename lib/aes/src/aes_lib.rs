@@ -86,7 +86,7 @@ pub fn decrypt_aes_cbc_raw(encrypted: &[u8], key: &[u8], iv: &[u8])
     if !data.is_empty() {
         let aes_key = init_aes_decrypt_key(key);
         let chunks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
-        let mut combined_chunks = encrypted.chunks(AES_BLOCK_SIZE).zip(chunks);
+        let combined_chunks = encrypted.chunks(AES_BLOCK_SIZE).zip(chunks);
         combined_chunks.fold(iv, |prev, (enc_block, block)| {
             // Decrypt in-place
             unsafe {AES_decrypt(block.as_ptr(), block.as_mut_ptr(), &aes_key)};
@@ -110,7 +110,7 @@ pub fn encrypt_aes_cbc(orig_data: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     let mut data = pkcs7_padding(orig_data);
     if !data.is_empty() {
         let aes_key = init_aes_encrypt_key(key);
-        let mut chunks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
+        let chunks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
         chunks.fold(iv, |prev, block| {
             // XOR block with the previous encrypted block in-place
             for (&c1, c2) in prev.iter().zip(block.iter_mut()) {
@@ -158,7 +158,7 @@ pub fn decrypt_aes_ctr(encrypted: &[u8], key: &[u8], nonce: u64) -> Vec<u8> {
 fn u64_to_vec(value: u64) -> Vec<u8> {
     let mut buf = MemWriter::with_capacity(8);
     match buf.write_le_u64(value) {
-        Ok(()) => buf.unwrap(),
+        Ok(()) => buf.into_inner(),
         Err(err) => panic!("Memory write error: {}", err)
     }
 }

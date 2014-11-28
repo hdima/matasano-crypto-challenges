@@ -9,8 +9,6 @@
 extern crate libc;
 extern crate serialize;
 
-use std::io::MemWriter;
-
 use libc::{c_int, c_uint};
 
 
@@ -156,9 +154,9 @@ pub fn decrypt_aes_ctr(encrypted: &[u8], key: &[u8], nonce: u64) -> Vec<u8> {
 
 #[inline]
 fn u64_to_vec(value: u64) -> Vec<u8> {
-    let mut buf = MemWriter::with_capacity(8);
+    let mut buf = Vec::with_capacity(8);
     match buf.write_le_u64(value) {
-        Ok(()) => buf.into_inner(),
+        Ok(()) => buf,
         Err(err) => panic!("Memory write error: {}", err)
     }
 }

@@ -79,8 +79,9 @@ fn main() {
     let data = read_example_text();
     let (encrypted, mode) = aes_oracle(data.as_slice());
     print!("Mode: {} - ", mode);
-    match guess_aes_mode(encrypted.as_slice()) {
-        m if m == mode => println!("Matched"),
-        _ => println!("Not matched")
+    if guess_aes_mode(encrypted.as_slice()) == mode {
+        println!("Matched");
+    } else {
+        println!("Not matched");
     }
 }

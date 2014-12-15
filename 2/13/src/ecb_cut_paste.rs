@@ -62,9 +62,9 @@ fn parse_kv(string: &[u8]) -> Vec<(String, String)> {
 fn encode_kv(map: &[(String, String)]) -> Vec<u8> {
     let mut bytes = Vec::new();
     for item in map.iter() {
-        bytes.push_all(item.ref0().clone().into_bytes().as_slice());
+        bytes.push_all(item.0.clone().into_bytes().as_slice());
         bytes.push(b'=');
-        bytes.push_all(item.ref1().clone().into_bytes().as_slice());
+        bytes.push_all(item.1.clone().into_bytes().as_slice());
         bytes.push(b'&');
     }
     // Remove last '&'

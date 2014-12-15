@@ -29,7 +29,7 @@ struct ByteStat {
  */
 pub fn decrypt(buffer: &[u8]) -> SingleCharKey {
     if buffer.is_empty() {
-        panic!("Buffer is empty");
+        return SingleCharKey::NotFound;
     }
     let first = get_most_freq_char(buffer);
     for &c in ENGLISH_CHARS_BY_FREQ.iter() {
@@ -62,7 +62,7 @@ fn get_most_freq_char(buffer: &[u8]) -> u8 {
     // Statistics map for every possible byte value
     let mut chars = Vec::from_fn(256, |i| ByteStat{byte: i as u8, num: 0});
     for &c in buffer.iter() {
-        chars.get_mut(c as uint).unwrap().num += 1;
+        chars[c as uint].num += 1;
     }
     // Sort in reverse order so most frequent character will be the first one
     chars.sort_by(|first, second| second.num.cmp(&first.num));
@@ -86,9 +86,9 @@ fn is_english(buffer: &[u8]) -> bool {
 #[inline]
 fn is_english_char(c: char) -> bool {
     match c {
-        'a'...'z' | 'A'...'Z' | '0'...'9' => true,
-        ' ' | '.' | ',' | '!' | '?' | '\'' | '-' | '"' | '&' | '%' => true,
-        '#' | '(' | ')' | '\n' | '\r' | '\t' => true,
+        'a'...'z' | 'A'...'Z' | '0'...'9'
+        | ' ' | '.' | ',' | '!' | '?' | '\'' | '-' | '"' | '&' | '%'
+        | '#' | '(' | ')' | '\n' | '\r' | '\t' => true,
         _ => false
     }
 }

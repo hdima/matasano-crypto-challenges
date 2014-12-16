@@ -140,7 +140,7 @@ pub fn decrypt_aes_ctr(encrypted: &[u8], key: &[u8], nonce: u64) -> Vec<u8> {
         let nonce_str = u64_to_vec(nonce);
         let blocks = data.as_mut_slice().chunks_mut(AES_BLOCK_SIZE);
         for (i, block) in blocks.enumerate() {
-            let mut input = nonce_str + u64_to_vec(i as u64);
+            let mut input = nonce_str.clone() + u64_to_vec(i as u64).as_slice();
             // Encrypt in-place
             unsafe {AES_encrypt(input.as_ptr(), input.as_mut_ptr(), &aes_key)};
             // XOR encrypted nonce/counter with the encrypted block in-place
@@ -225,7 +225,7 @@ fn pkcs7_padding(data: &[u8]) -> Vec<u8> {
         0 => data.to_vec(),
         size => {
             let pad = AES_BLOCK_SIZE - size;
-            data.to_vec() + Vec::from_elem(pad, pad as u8)
+            data.to_vec() + Vec::from_elem(pad, pad as u8).as_slice()
         }
     }
 }

@@ -12,7 +12,7 @@ fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
         data.to_vec()
     } else {
         let pad = size - len as u8;
-        data.to_vec() + Vec::from_elem(pad as uint, pad)
+        data.to_vec() + Vec::from_elem(pad as uint, pad).as_slice()
     }
 }
 

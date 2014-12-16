@@ -46,7 +46,7 @@ impl Decryptor {
 
     #[inline]
     fn encrypt(&self, string: &[u8]) -> Vec<u8> {
-        let data = string.to_vec() + self.unknown;
+        let data = string.to_vec() + self.unknown.as_slice();
         encrypt_aes_ecb(data.as_slice(), self.key.as_slice())
     }
 

@@ -51,7 +51,7 @@ fn aes_oracle(input: &[u8]) -> (Vec<u8>, Mode) {
     let key = random_bytes(AES_BLOCK_SIZE);
     let prepend = random_bytes(random_uint(5, 10));
     let append = random_bytes(random_uint(5, 10));
-    let data = prepend + input.to_vec() + append;
+    let data = prepend + input + append.as_slice();
     match random::<Mode>() {
         Mode::ECB =>
             (encrypt_aes_ecb(data.as_slice(), key.as_slice()), Mode::ECB),

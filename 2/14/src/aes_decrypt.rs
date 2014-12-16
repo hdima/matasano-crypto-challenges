@@ -32,7 +32,7 @@ impl Decryptor {
 
     #[inline]
     fn encrypt(&self, string: &[u8]) -> Vec<u8> {
-        let data = self.prefix + string.to_vec() + self.unknown;
+        let data = self.prefix.clone() + string + self.unknown.as_slice();
         encrypt_aes_ecb(data.as_slice(), self.key.as_slice())
     }
 

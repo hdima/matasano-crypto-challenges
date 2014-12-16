@@ -41,8 +41,7 @@ impl Profile {
         let encrypted = self.profile_for("foooo@bar.com");
         let enc_admin = self.profile_for(concat!("f@bar.com.",
             "admin\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b"));
-        encrypted.slice_to(32).to_vec()
-            + enc_admin.slice(16, 32).to_vec()
+        encrypted.slice_to(32).to_vec() + enc_admin.slice(16, 32)
     }
 }
 

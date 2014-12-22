@@ -45,9 +45,9 @@ impl MersenneTwister {
         for i in range(0, N) {
             let y = (self.state[i] & 0x80000000)
                     | (self.state[(i + 1) % N] & 0x7fffffff);
-            self.state[i] = self.state[(i + M) % N] ^ (y >> 1);
-            if y % 2 != 0 {
-                self.state[i] ^= 0x9908b0df;
+            self.state[i] = match y % 2 {
+                0 => self.state[(i + M) % N] ^ (y >> 1),
+                _ => self.state[(i + M) % N] ^ (y >> 1) ^ 0x9908b0df
             }
         }
         self.index = 0;
@@ -67,24 +67,24 @@ fn init_state(seed: u32) -> Vec<u32> {
 fn init_by_vec(init_key: &[u32]) -> Vec<u32> {
     let mut state = init_state(19650218);
     let len = init_key.len();
+    let limit = N - 1;
     for i in range(0, max(N, len)) {
-        state[i % (N - 1) + 1] = (state[i % (N - 1) + 1]
-            ^ ((state[i % (N - 1)] ^ (state[i % (N - 1)] >> 30)) * 1664525))
+        let idx = i % limit;
+        state[idx + 1] = (state[idx + 1]
+            ^ ((state[idx] ^ (state[idx] >> 30)) * 1664525))
             + init_key[i % len] + (i % len) as u32;
-        if (i + 1) % (N - 1) == 0 {
-            state[0] = state[N - 1];
+        if (i + 1) % limit == 0 {
+            state[0] = state[limit];
         }
     }
 
-    for i in range(1, N) {
-        state[i % (N - 1) + 1] = (state[i % (N - 1) + 1]
-            ^ ((state[i % (N - 1)] ^ (state[i % (N - 1)] >> 30)) * 1566083941))
-            - (i % (N - 1) + 1) as u32;
-        if (i + 1) % (N - 1) == 0 {
-            state[0] = state[N - 1];
-        }
+    for i in range(2, N) {
+        state[i] = (state[i]
+            ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1566083941)) - i as u32;
     }
 
+    state[1] = (state[1]
+        ^ ((state[N - 1] ^ (state[N - 1] >> 30)) * 1566083941)) - 1;
     state[0] = 0x80000000;
     state
 }
@@ -170,5 +170,10 @@ mod tests {
     fn bench_rand_u32(b: &mut Bencher) {
         let mut rng = MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]);
         b.iter(|| rng.rand_u32());
+    }
+
+    #[bench]
+    fn bench_new(b: &mut Bencher) {
+        b.iter(|| MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]));
     }
 }

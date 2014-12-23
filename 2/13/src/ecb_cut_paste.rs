@@ -24,9 +24,9 @@ impl Profile {
         if email.contains("&") || email.contains("=") {
             panic!("Invalid character in email: {}", email);
         }
-        let map = [("email".into_string(), email.to_string()),
-                   ("uid".into_string(), "10".into_string()),
-                   ("role".into_string(), "user".into_string())];
+        let map = [("email".to_string(), email.to_string()),
+                   ("uid".to_string(), "10".to_string()),
+                   ("role".to_string(), "user".to_string())];
         let encoded = encode_kv(&map);
         encrypt_aes_ecb(encoded.as_slice(), self.key.as_slice())
     }

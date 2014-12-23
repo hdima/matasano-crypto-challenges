@@ -25,7 +25,7 @@ impl State {
         let quoted = data.replace(";", "%3B").replace("=", "%3D");
         let prepend = "comment1=cooking%20MCs;userdata=";
         let append = ";comment2=%20like%20a%20pound%20of%20bacon";
-        let to_enc = prepend.into_string() + quoted.as_slice() + append;
+        let to_enc = prepend.to_string() + quoted.as_slice() + append;
         encrypt_aes_cbc(to_enc.into_bytes().as_slice(), self.key.as_slice(),
                         self.iv.as_slice())
     }

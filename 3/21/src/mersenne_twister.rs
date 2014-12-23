@@ -70,19 +70,18 @@ fn init_by_vec(init_key: &[u32]) -> Vec<u32> {
     let limit = N - 1;
     for i in range(0, max(N, len)) {
         let idx = i % limit;
+        let k_idx = i % len;
         state[idx + 1] = (state[idx + 1]
             ^ ((state[idx] ^ (state[idx] >> 30)) * 1664525))
-            + init_key[i % len] + (i % len) as u32;
+            + init_key[k_idx] + k_idx as u32;
         if (i + 1) % limit == 0 {
             state[0] = state[limit];
         }
     }
-
     for i in range(2, N) {
         state[i] = (state[i]
             ^ ((state[i - 1] ^ (state[i - 1] >> 30)) * 1566083941)) - i as u32;
     }
-
     state[1] = (state[1]
         ^ ((state[N - 1] ^ (state[N - 1] >> 30)) * 1566083941)) - 1;
     state[0] = 0x80000000;

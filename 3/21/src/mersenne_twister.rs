@@ -14,14 +14,30 @@ use std::cmp::max;
 static N: uint = 624;
 static M: uint = 397;
 
+trait MersenneTwisterSeed {
+    fn get_state(&self) -> Vec<u32>;
+}
+
+impl<'a> MersenneTwisterSeed for &'a[u32] {
+    fn get_state(&self) -> Vec<u32> {
+        init_by_vec(*self)
+    }
+}
+
+impl MersenneTwisterSeed for u32 {
+    fn get_state(&self) -> Vec<u32> {
+        init_by_vec(&[*self])
+    }
+}
+
 struct MersenneTwister {
     state: Vec<u32>,
     index: uint
 }
 
 impl MersenneTwister {
-    fn new(init_key: &[u32]) -> MersenneTwister {
-        MersenneTwister{state: init_by_vec(init_key), index: N}
+    fn new<S: MersenneTwisterSeed>(init_key: S) -> MersenneTwister {
+        MersenneTwister{state: init_key.get_state(), index: N}
     }
 
     fn rand_u32(&mut self) -> u32 {
@@ -93,7 +109,7 @@ fn init_by_vec(init_key: &[u32]) -> Vec<u32> {
  */
 #[cfg(not(test))]
 fn main() {
-    let mut rng = MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]);
+    let mut rng = MersenneTwister::new([0x123, 0x234, 0x345, 0x456].as_slice());
     for i in range(0u, 1000) {
         match i % 5 == 4 {
             false => print!("{:>10} ", rng.rand_u32()),
@@ -135,7 +151,8 @@ mod tests {
             2101727825, 3730287744, 2950434330, 1661921839, 2895579582,
             2370511479, 1004092106, 2247096681, 2111242379, 3237345263,
         ];
-        let mut rng = MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]);
+        let mut rng = MersenneTwister::new(
+            [0x123, 0x234, 0x345, 0x456].as_slice());
         for (i, &exp) in expected.iter().enumerate() {
             assert_eq!((i, exp), (i, rng.rand_u32()));
         }
@@ -155,7 +172,8 @@ mod tests {
             0.91810699, 0.22320679, 0.23353705, 0.92871862, 0.98897234,
             0.19786706, 0.80558809, 0.06961067, 0.55840445, 0.90479405,
         ];
-        let mut rng = MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]);
+        let mut rng = MersenneTwister::new(
+            [0x123, 0x234, 0x345, 0x456].as_slice());
         // For the test data we use 1000 values should be skipped
         for _ in range(0u, 1000) {
             rng.rand_f64();
@@ -167,12 +185,15 @@ mod tests {
 
     #[bench]
     fn bench_rand_u32(b: &mut Bencher) {
-        let mut rng = MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]);
+        let mut rng = MersenneTwister::new(
+            [0x123, 0x234, 0x345, 0x456].as_slice());
         b.iter(|| rng.rand_u32());
     }
 
     #[bench]
     fn bench_new(b: &mut Bencher) {
-        b.iter(|| MersenneTwister::new(&[0x123, 0x234, 0x345, 0x456]));
+        let init_key = [0x123, 0x234, 0x345, 0x456];
+        let init_key_slice = init_key.as_slice();
+        b.iter(|| MersenneTwister::new(init_key_slice));
     }
 }

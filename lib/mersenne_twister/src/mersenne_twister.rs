@@ -33,6 +33,14 @@ impl MersenneTwisterSeed for u32 {
     }
 }
 
+impl MersenneTwisterSeed for i64 {
+    fn get_state(&self) -> Vec<u32> {
+        let first: u32 = *self as u32;
+        let second: u32 = (*self as u64 >> 32) as u32;
+        init_by_vec(&[first, second])
+    }
+}
+
 pub struct MersenneTwister {
     state: Vec<u32>,
     index: uint

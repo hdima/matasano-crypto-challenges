@@ -12,6 +12,7 @@
 extern crate test;
 
 use std::cmp::max;
+use std::iter::range_step;
 
 
 static N: uint = 624;
@@ -47,7 +48,7 @@ pub struct MersenneTwister {
 }
 
 impl MersenneTwister {
-    pub fn new<S: MersenneTwisterSeed>(init_key: S) -> MersenneTwister {
+    pub fn new<S: MersenneTwisterSeed>(init_key: S) -> Self {
         MersenneTwister{state: init_key.get_state(), index: N}
     }
 
@@ -78,6 +79,25 @@ impl MersenneTwister {
             }
         }
         self.index = 0;
+    }
+
+    /*
+     * Split the RNG by guessing the internal state.
+     */
+    pub fn split(&mut self) -> Self {
+        let state: Vec<u32>  = range(0, N).map(|_| {
+            let mut v = self.rand_u32();
+            v ^= v >> 18;
+            v ^= (v << 15) & 0xefc60000;
+            // Recover correct bits step by step
+            v = range_step(0u, 32, 7).fold(v, |v, shift| {
+                v ^ (((v << 7) & 0x9d2c5680) & (0x3f80 << shift))
+            });
+            range_step(0u, 32, 11).fold(v, |v, shift| {
+                v ^ ((v >> 11) & (0xffe00000 >> shift))
+            })
+        }).collect();
+        MersenneTwister{state: state, index: N}
     }
 }
 

@@ -5,7 +5,7 @@
 
 extern crate aes_lib;
 
-use std::rand::{random, task_rng, Rng, Rand};
+use std::rand::{random, thread_rng, Rng, Rand};
 use std::fmt;
 use std::fmt::{Show, Formatter};
 use std::collections::HashSet;
@@ -44,7 +44,7 @@ fn random_bytes(len: uint) -> Vec<u8> {
 
 #[inline]
 fn random_uint(low: uint, high: uint) -> uint {
-    task_rng().gen_range(low, high)
+    thread_rng().gen_range(low, high)
 }
 
 fn aes_oracle(input: &[u8]) -> (Vec<u8>, Mode) {

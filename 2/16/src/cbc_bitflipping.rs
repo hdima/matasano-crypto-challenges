@@ -41,7 +41,7 @@ impl State {
 }
 
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 fn add_admin(state: &State) -> Vec<u8> {

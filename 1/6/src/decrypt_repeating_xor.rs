@@ -13,6 +13,8 @@ use std::path::Path;
 use std::io::fs::File;
 
 use std::iter::AdditiveIterator;
+#[cfg(not(test))]
+use std::iter::repeat;
 
 #[cfg(not(test))]
 use serialize::base64::FromBase64;
@@ -96,15 +98,15 @@ fn guess_keysize(buffer: &[u8]) -> Vec<uint> {
 fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> RepeatingKey {
     let len = encrypted.len();
     let line_len = (len / keysize) + 1;
-    let mut buffers: Vec<Vec<u8>> = Vec::from_fn(keysize,
-        |_| Vec::with_capacity(line_len));
+    let mut buffers: Vec<Vec<u8>> = range(0, keysize).map(|_|
+        Vec::with_capacity(line_len)).collect();
     for block in encrypted.chunks(keysize) {
         for (i, &c) in block.iter().enumerate() {
             buffers.get_mut(i).unwrap().push(c);
         }
     }
     let mut key: Vec<u8> = Vec::with_capacity(keysize);
-    let mut decrypted: Vec<u8> = Vec::from_elem(len, 0u8);
+    let mut decrypted: Vec<u8> = repeat(0u8).take(len).collect();
     for (i, block) in buffers.iter().enumerate() {
         match decrypt((*block).as_slice()) {
             SingleCharKey::Found(k, text) => {

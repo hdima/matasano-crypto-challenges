@@ -77,7 +77,7 @@ fn guess_key(encrypted: &[u8], known_suffix: &[u8]) -> Option<u16> {
 
 #[cfg(not(test))]
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 #[cfg(not(test))]
@@ -131,9 +131,9 @@ mod tests {
 
     #[test]
     fn test_key_stream() {
-        let ks: Vec<u8> = KeyStream::new(0).take(100).collect();
-        let ks2: Vec<u8> = KeyStream::new(0).take(100).collect();
-        let ks3: Vec<u8> = KeyStream::new(100).take(100).collect();
+        let ks: Vec<u8> = KeyStream::new(0u32).take(100).collect();
+        let ks2: Vec<u8> = KeyStream::new(0u32).take(100).collect();
+        let ks3: Vec<u8> = KeyStream::new(100u32).take(100).collect();
         assert_eq!(ks.as_slice(), ks2.as_slice());
         assert!(ks.as_slice() != ks3.as_slice());
     }

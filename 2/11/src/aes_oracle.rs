@@ -39,7 +39,7 @@ impl Show for Mode {
 
 #[inline]
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 #[inline]

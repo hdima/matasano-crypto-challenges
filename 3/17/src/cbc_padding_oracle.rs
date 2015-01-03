@@ -9,6 +9,7 @@ extern crate aes_lib;
 
 use serialize::base64::FromBase64;
 use std::rand::random;
+use std::iter::repeat;
 
 use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_cbc, decrypt_aes_cbc_raw,
     remove_pkcs7_padding};
@@ -68,8 +69,9 @@ impl State {
     }
 
     fn decrypt_block(&self, block: &[u8]) -> Vec<u8> {
-        let mut dec = Vec::from_elem(AES_BLOCK_SIZE, 0);
-        let mut tmp = Vec::from_elem(AES_BLOCK_SIZE, 0) + block;
+        let mut dec: Vec<u8> = repeat(0u8).take(AES_BLOCK_SIZE).collect();
+        let mut tmp: Vec<u8> = repeat(0u8).take(AES_BLOCK_SIZE).chain(
+                                    block.iter().map(|&c| c)).collect();
         let mut i = 1;
         // Guess the last character
         for c in range(0u16, 256) {
@@ -113,12 +115,12 @@ impl State {
 }
 
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 fn main() {
     let state = State::new();
     let enc = state.encrypt();
     let dec = state.decrypt(enc.as_slice());
-    println!("Encrypted: {}", String::from_utf8_lossy(dec.as_slice()));
+    println!("Decrypted: {}", String::from_utf8_lossy(dec.as_slice()));
 }

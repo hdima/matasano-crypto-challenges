@@ -9,6 +9,7 @@ extern crate aes_lib;
 
 use std::rand::random;
 use std::fmt;
+use std::iter::repeat;
 use std::collections::HashMap;
 use serialize::base64::FromBase64;
 
@@ -52,7 +53,7 @@ impl Decryptor {
 
     fn guess_block_size(&self) -> Option<uint> {
         static MAX_KEY_SIZE: uint = 256;
-        let data = Vec::from_elem(MAX_KEY_SIZE - 1, 0u8);
+        let data: Vec<u8> = repeat(0u8).take(MAX_KEY_SIZE - 1).collect();
         let mut prev = self.encrypt(data.slice_to(1));
         for len in range(1, MAX_KEY_SIZE) {
             let enc = self.encrypt(data.slice_to(len + 1));
@@ -65,7 +66,7 @@ impl Decryptor {
     }
 
     fn guess_aes_mode(&self, block_size: uint) -> Mode {
-        let s = Vec::from_elem(block_size * 2, 0u8);
+        let s: Vec<u8> = repeat(0u8).take(block_size * 2).collect();
         let e = self.encrypt(s.as_slice());
         match e.slice_to(block_size) == e.slice(block_size, block_size * 2) {
             true => Mode::ECB,
@@ -74,7 +75,7 @@ impl Decryptor {
     }
 
     fn make_dict(&self, block_size: uint) -> Dict {
-        let mut input = Vec::from_elem(block_size, 0u8);
+        let mut input: Vec<u8> = repeat(0u8).take(block_size).collect();
         range(0, 255).map(|c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
@@ -84,7 +85,7 @@ impl Decryptor {
 
     fn decrypt(&self, block_size: uint) -> Vec<u8> {
         let dict = self.make_dict(block_size);
-        let mut input = Vec::from_elem(block_size, 0u8);
+        let mut input: Vec<u8> = repeat(0u8).take(block_size).collect();
         self.unknown.iter().map(|&c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
@@ -94,7 +95,7 @@ impl Decryptor {
 }
 
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 fn unknown_string() -> Vec<u8> {

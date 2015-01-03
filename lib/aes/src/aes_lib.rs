@@ -9,6 +9,7 @@
 extern crate libc;
 extern crate serialize;
 
+use std::iter::repeat;
 use libc::{c_int, c_uint};
 
 
@@ -221,11 +222,13 @@ pub fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
  */
 #[inline]
 fn pkcs7_padding(data: &[u8]) -> Vec<u8> {
+    let mut r = data.to_vec();
     match data.len() % AES_BLOCK_SIZE {
-        0 => data.to_vec(),
+        0 => r,
         size => {
             let pad = AES_BLOCK_SIZE - size;
-            data.to_vec() + Vec::from_elem(pad, pad as u8).as_slice()
+            r.extend(repeat(pad as u8).take(pad));
+            r
         }
     }
 }

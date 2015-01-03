@@ -57,7 +57,9 @@ fn xor_by_key(buffer: &[u8], key: u8) -> Vec<u8> {
  */
 fn get_most_freq_char(buffer: &[u8]) -> u8 {
     // Statistics map for every possible byte value
-    let mut chars = Vec::from_fn(256, |i| ByteStat{byte: i as u8, num: 0});
+    let mut chars: Vec<ByteStat> = range(0u16, 256).map(|i| {
+            ByteStat{byte: i as u8, num: 0}
+        }).collect();
     for &c in buffer.iter() {
         chars[c as uint].num += 1;
     }

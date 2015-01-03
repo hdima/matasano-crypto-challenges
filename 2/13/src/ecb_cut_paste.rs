@@ -46,7 +46,7 @@ impl Profile {
 }
 
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 fn parse_kv(string: &[u8]) -> Vec<(String, String)> {
@@ -87,9 +87,9 @@ mod test {
 
     #[test]
     fn test_parse_encode_kv() {
-        let map = [("foo".into_string(), "bar".into_string()),
-                   ("baz".into_string(), "qux".into_string()),
-                   ("zap".into_string(), "zazzle".into_string())];
+        let map = [("foo".to_string(), "bar".to_string()),
+                   ("baz".to_string(), "qux".to_string()),
+                   ("zap".to_string(), "zazzle".to_string())];
         let encoded: Vec<u8> = b"foo=bar&baz=qux&zap=zazzle".to_vec();
         assert_eq!(map.to_vec(), parse_kv(encoded.as_slice()));
         assert_eq!(encode_kv(&map), encoded);
@@ -101,8 +101,8 @@ mod test {
         let email = "foo@bar.com";
         let encrypted = profile.profile_for(email.as_slice());
         assert_eq!(profile.decrypt(encrypted.as_slice()),
-                   [("email".into_string(), email.into_string()),
-                    ("uid".into_string(), "10".into_string()),
-                    ("role".into_string(), "user".into_string())].to_vec());
+                   [("email".to_string(), email.to_string()),
+                    ("uid".to_string(), "10".to_string()),
+                    ("role".to_string(), "user".to_string())].to_vec());
     }
 }

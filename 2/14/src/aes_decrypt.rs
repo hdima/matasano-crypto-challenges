@@ -8,6 +8,7 @@ extern crate serialize;
 extern crate aes_lib;
 
 use std::rand::random;
+use std::iter::repeat;
 use std::collections::HashMap;
 use serialize::base64::FromBase64;
 
@@ -40,7 +41,7 @@ impl Decryptor {
     // difference between the start position and the end of the prefix
     fn find_start_pos(&self) -> (uint, uint) {
         static MAX_DATA_SIZE: uint = 64 * 1024;
-        let data = Vec::from_elem(MAX_DATA_SIZE, 0u8);
+        let data: Vec<u8> = repeat(0u8).take(MAX_DATA_SIZE).collect();
         for n in range(0, MAX_DATA_SIZE) {
             // Start from 2 AES blocks so we can find duplicates
             let enc = self.encrypt(data.slice_to(AES_BLOCK_SIZE * 2 + n));
@@ -56,7 +57,7 @@ impl Decryptor {
     }
 
     fn make_dict(&self, start: uint, diff: uint) -> Dict {
-        let mut input = Vec::from_elem(AES_BLOCK_SIZE + diff, 0u8);
+        let mut input: Vec<u8> = repeat(0u8).take(AES_BLOCK_SIZE + diff).collect();
         range(0, 255).map(|c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
@@ -67,7 +68,7 @@ impl Decryptor {
     fn decrypt(&self) -> Vec<u8> {
         let (start, diff) = self.find_start_pos();
         let dict = self.make_dict(start, diff);
-        let mut input = Vec::from_elem(AES_BLOCK_SIZE + diff, 0u8);
+        let mut input: Vec<u8> = repeat(0u8).take(AES_BLOCK_SIZE + diff).collect();
         self.unknown.iter().map(|&c| {
             *input.last_mut().unwrap() = c;
             let enc = self.encrypt(input.as_slice());
@@ -77,7 +78,7 @@ impl Decryptor {
 }
 
 fn random_bytes(len: uint) -> Vec<u8> {
-    Vec::from_fn(len, |_| random::<u8>())
+    range(0, len).map(|_| random::<u8>()).collect()
 }
 
 fn unknown_string() -> Vec<u8> {

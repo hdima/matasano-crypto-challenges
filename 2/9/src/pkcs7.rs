@@ -3,16 +3,20 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
+use std::iter::repeat;
+
 
 fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
     let len = data.len();
+    let mut r = data.to_vec();
     if len > size as uint {
         panic!("Invalid block size: {}", size);
     } else if len == size as uint {
-        data.to_vec()
+        r
     } else {
         let pad = size - len as u8;
-        data.to_vec() + Vec::from_elem(pad as uint, pad).as_slice()
+        r.extend(repeat(pad).take(pad as uint));
+        r
     }
 }
 

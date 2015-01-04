@@ -33,7 +33,7 @@ enum RepeatingKey {
  * Calculate Hamming distance between two equal-length buffers.
  */
 fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
-    static N_BITS: [uint, ..256] =
+    static N_BITS: [uint; 256] =
             [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3,
              3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4,
              3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2,

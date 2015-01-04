@@ -3,6 +3,8 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
+#![feature(associated_types)]
+
 extern crate libc;
 extern crate serialize;
 extern crate mersenne_twister;
@@ -10,20 +12,26 @@ extern crate mersenne_twister;
 #[cfg(not(test))]
 use std::rand::random;
 use std::iter::range_step;
+#[cfg(not(test))]
 use std::ptr;
+#[cfg(not(test))]
 use libc::time_t;
 
+#[cfg(not(test))]
 use serialize::hex::{FromHex, ToHex};
 
 use mersenne_twister::{MersenneTwister, MersenneTwisterSeed};
 
 
+#[cfg(not(test))]
 static TOKEN_LEN: uint = 8;
 
+#[cfg(not(test))]
 extern {
     fn time(tloc: *const time_t) -> time_t;
 }
 
+#[cfg(not(test))]
 fn timestamp() -> time_t {
     unsafe {time(ptr::null())}
 }
@@ -41,7 +49,8 @@ impl KeyStream {
     }
 }
 
-impl Iterator<u8> for KeyStream {
+impl Iterator for KeyStream {
+    type Item = u8;
     fn next(&mut self) -> Option<u8> {
         if self.buffer.is_empty() {
             let rnd = self.prng.rand_u32();
@@ -85,11 +94,13 @@ fn update_text(suffix: &[u8]) -> Vec<u8> {
     random_bytes(random::<u8>() as uint) + suffix
 }
 
+#[cfg(not(test))]
 fn create_token() -> String {
     let ks = KeyStream::new(timestamp());
     ks.take(TOKEN_LEN).collect::<Vec<u8>>().to_hex()
 }
 
+#[cfg(not(test))]
 fn find_token_seed(token: &str) -> Option<time_t> {
     let mut now = timestamp();
     let bytes = token.from_hex().unwrap();

@@ -18,7 +18,7 @@ pub static AES_BLOCK_SIZE: uint = 16u;
 #[repr(C)]
 struct AesKey {
     // 4 * (AES_MAXNR + 1)
-    rd_key: [c_uint, ..(4 * (14 + 1))],
+    rd_key: [c_uint; 4 * (14 + 1)],
     rounds: c_int,
 }
 
@@ -172,7 +172,7 @@ fn init_aes_key(key: &[u8], set_key: |*const u8, c_int, *mut AesKey| -> c_int)
         panic!("Invalid key size");
     }
     // 4 * (AES_MAXNR + 1)
-    let mut aes_key = AesKey{rd_key: [0, ..(4 * (14 + 1))], rounds: 0};
+    let mut aes_key = AesKey{rd_key: [0; 4 * (14 + 1)], rounds: 0};
     let bits = 8 * AES_BLOCK_SIZE as c_int;
     match set_key(key.as_ptr(), bits, &mut aes_key) {
         0 => aes_key,

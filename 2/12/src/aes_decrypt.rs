@@ -18,7 +18,7 @@ use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_ecb};
 
 type Dict = HashMap<Vec<u8>, u8>;
 
-#[deriving(PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 enum Mode {
     ECB,
     CBC

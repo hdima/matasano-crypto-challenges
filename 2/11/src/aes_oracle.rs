@@ -13,7 +13,7 @@ use std::io::File;
 
 use aes_lib::{AES_BLOCK_SIZE, encrypt_aes_ecb, encrypt_aes_cbc};
 
-#[deriving(PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 enum Mode {
     ECB,
     CBC

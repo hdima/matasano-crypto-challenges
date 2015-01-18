@@ -45,7 +45,7 @@ impl Profile {
     }
 }
 
-fn random_bytes(len: uint) -> Vec<u8> {
+fn random_bytes(len: usize) -> Vec<u8> {
     range(0, len).map(|_| random::<u8>()).collect()
 }
 
@@ -75,7 +75,7 @@ fn encode_kv(map: &[(String, String)]) -> Vec<u8> {
 fn main() {
     let profile = Profile::new();
     let encrypted = profile.make_admin_profile();
-    println!("Decrypted: {}", profile.decrypt(encrypted.as_slice()));
+    println!("Decrypted: {:?}", profile.decrypt(encrypted.as_slice()));
 }
 
 /*

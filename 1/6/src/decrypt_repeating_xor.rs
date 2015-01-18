@@ -32,8 +32,8 @@ enum RepeatingKey {
 /*
  * Calculate Hamming distance between two equal-length buffers.
  */
-fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
-    static N_BITS: [uint; 256] =
+fn hamming_distance(s1: &[u8], s2: &[u8]) -> usize {
+    static N_BITS: [usize; 256] =
             [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3,
              3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4,
              3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2,
@@ -49,15 +49,15 @@ fn hamming_distance(s1: &[u8], s2: &[u8]) -> uint {
     if s1.len() != s2.len() {
         panic!("Not equal length buffers");
     }
-    s1.iter().zip(s2.iter()).map(|(&c1, &c2)| N_BITS[(c1 ^ c2) as uint]).sum()
+    s1.iter().zip(s2.iter()).map(|(&c1, &c2)| N_BITS[(c1 ^ c2) as usize]).sum()
 }
 
 /*
  * Return list of key sizes sorted by probability
  */
-fn guess_keysize(buffer: &[u8]) -> Vec<uint> {
-    static MIN_BLOCK_SIZE: uint = 2;
-    static MAX_BLOCK_SIZE: uint = 50;
+fn guess_keysize(buffer: &[u8]) -> Vec<usize> {
+    static MIN_BLOCK_SIZE: usize = 2;
+    static MAX_BLOCK_SIZE: usize = 50;
 
     let max = match buffer.len() / 2 {
         block_size if block_size <= MIN_BLOCK_SIZE =>
@@ -78,8 +78,8 @@ fn guess_keysize(buffer: &[u8]) -> Vec<uint> {
          * achieve better results. But see also comments for
          * decrypt_repeating_xor() function.
          */
-        let samples: uint = (max * 2) / size - 1;
-        let mut dist = 0u;
+        let samples: usize = (max * 2) / size - 1;
+        let mut dist = 0;
         for i in range(0, samples) {
             let start = i * size;
             let s1 = buffer.slice(start, start + size);
@@ -95,7 +95,7 @@ fn guess_keysize(buffer: &[u8]) -> Vec<uint> {
 }
 
 #[cfg(not(test))]
-fn decrypt_with_keysize(encrypted: &[u8], keysize: uint) -> RepeatingKey {
+fn decrypt_with_keysize(encrypted: &[u8], keysize: usize) -> RepeatingKey {
     let len = encrypted.len();
     let line_len = (len / keysize) + 1;
     let mut buffers: Vec<Vec<u8>> = range(0, keysize).map(|_|
@@ -158,7 +158,7 @@ fn main() {
     let path = Path::new("buffer.txt");
     let decrypted = match File::open(&path) {
         Ok(file) => decrypt_repeating_xor_file(file),
-        Err(err) => panic!("Unable to open {}: {}", path.as_str(), err)
+        Err(err) => panic!("Unable to open {:?}: {}", path.as_str(), err)
     };
     match decrypted {
         RepeatingKey::Found(key, text) => println!(

@@ -15,8 +15,8 @@ use std::cmp::max;
 use std::iter::range_step;
 
 
-static N: uint = 624;
-static M: uint = 397;
+static N: usize = 624;
+static M: usize = 397;
 
 pub trait MersenneTwisterSeed {
     fn get_state(&self) -> Vec<u32>;
@@ -50,7 +50,7 @@ impl MersenneTwisterSeed for u16 {
 
 pub struct MersenneTwister {
     state: Vec<u32>,
-    index: uint
+    index: usize
 }
 
 impl MersenneTwister {
@@ -96,10 +96,10 @@ impl MersenneTwister {
             v ^= v >> 18;
             v ^= (v << 15) & 0xefc60000;
             // Recover correct bits step by step
-            v = range_step(0u, 32, 7).fold(v, |v, shift| {
+            v = range_step(0, 32, 7).fold(v, |v, shift| {
                 v ^ (((v << 7) & 0x9d2c5680) & (0x3f80 << shift))
             });
-            range_step(0u, 32, 11).fold(v, |v, shift| {
+            range_step(0, 32, 11).fold(v, |v, shift| {
                 v ^ ((v >> 11) & (0xffe00000 >> shift))
             })
         }).collect();

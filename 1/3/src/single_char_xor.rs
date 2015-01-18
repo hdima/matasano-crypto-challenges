@@ -18,7 +18,7 @@ fn main() {
                  78373e783a393b3736";
     let encrypted = input.from_hex().unwrap();
     println!("Input        => \"{}\"\n\
-              Binary input => {}",
+              Binary input => {:?}",
              input, encrypted);
     match decrypt(encrypted.as_slice()) {
         SingleCharKey::Found(key, decrypted) => {

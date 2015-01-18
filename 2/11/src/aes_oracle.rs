@@ -38,12 +38,12 @@ impl Show for Mode {
 }
 
 #[inline]
-fn random_bytes(len: uint) -> Vec<u8> {
+fn random_bytes(len: usize) -> Vec<u8> {
     range(0, len).map(|_| random::<u8>()).collect()
 }
 
 #[inline]
-fn random_uint(low: uint, high: uint) -> uint {
+fn random_uint(low: usize, high: usize) -> usize {
     thread_rng().gen_range(low, high)
 }
 
@@ -78,7 +78,7 @@ fn read_example_text() -> Vec<u8> {
 fn main() {
     let data = read_example_text();
     let (encrypted, mode) = aes_oracle(data.as_slice());
-    print!("Mode: {} - ", mode);
+    print!("Mode: {:?} - ", mode);
     if guess_aes_mode(encrypted.as_slice()) == mode {
         println!("Matched");
     } else {

@@ -23,8 +23,8 @@ fn main() {
     let key = b"ICE";
     let input = b"Burning 'em, if you ain't quick and nimble\n\
                   I go crazy when I hear a cymbal";
-    println!("Key   => {}\n\
-              Input => {}",
+    println!("Key   => {:?}\n\
+              Input => {:?}",
               key, input);
     let encrypted = xor_by_key(input, key);
     println!("Encrypted => \"{}\"", encrypted.to_hex());

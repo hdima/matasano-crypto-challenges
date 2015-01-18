@@ -13,7 +13,7 @@ use std::iter::repeat;
 use libc::{c_int, c_uint};
 
 
-pub static AES_BLOCK_SIZE: uint = 16u;
+pub static AES_BLOCK_SIZE: usize = 16;
 
 #[repr(C)]
 struct AesKey {
@@ -166,8 +166,8 @@ fn u64_to_vec(value: u64) -> Vec<u8> {
  * Initialize AES key structure
  */
 #[inline]
-fn init_aes_key(key: &[u8], set_key: |*const u8, c_int, *mut AesKey| -> c_int)
-        -> AesKey {
+fn init_aes_key<Set: Fn(*const u8, c_int, *mut AesKey) -> c_int>(
+        key: &[u8], set_key: Set) -> AesKey {
     if key.len() != AES_BLOCK_SIZE {
         panic!("Invalid key size");
     }
@@ -206,8 +206,8 @@ fn init_aes_encrypt_key(key: &[u8]) -> AesKey {
 #[inline]
 pub fn remove_pkcs7_padding(mut data: Vec<u8>) -> Vec<u8> {
     match data.last() {
-        Some(&last) if last > 0 && (last as uint) < AES_BLOCK_SIZE => {
-            let data_len = data.len() - last as uint;
+        Some(&last) if last > 0 && (last as usize) < AES_BLOCK_SIZE => {
+            let data_len = data.len() - last as usize;
             if data.slice_from(data_len).iter().all(|&c| c == last) {
                 data.truncate(data_len);
             }

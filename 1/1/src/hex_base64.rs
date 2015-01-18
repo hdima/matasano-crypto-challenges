@@ -13,7 +13,7 @@ use serialize::base64::{STANDARD, FromBase64, ToBase64};
 fn hex_to_bytes(hex: &str) -> Vec<u8> {
     match hex.from_hex() {
         Ok(bytes) => bytes,
-        Err(error) => panic!("Error converting from Hex: {}", error)
+        Err(error) => panic!("Error converting from Hex: {:?}", error)
     }
 }
 
@@ -24,7 +24,7 @@ fn bytes_to_base64(bytes: &[u8]) -> String {
 fn base64_to_bytes(base64: &str) -> Vec<u8> {
     match base64.from_base64() {
         Ok(bytes) => bytes,
-        Err(error) => panic!("Error converting from Base64: {}", error)
+        Err(error) => panic!("Error converting from Base64: {:?}", error)
     }
 }
 

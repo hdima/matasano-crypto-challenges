@@ -9,13 +9,13 @@ use std::iter::repeat;
 fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
     let len = data.len();
     let mut r = data.to_vec();
-    if len > size as uint {
+    if len > size as usize {
         panic!("Invalid block size: {}", size);
-    } else if len == size as uint {
+    } else if len == size as usize {
         r
     } else {
         let pad = size - len as u8;
-        r.extend(repeat(pad).take(pad as uint));
+        r.extend(repeat(pad).take(pad as usize));
         r
     }
 }
@@ -26,8 +26,8 @@ fn pkcs7(data: &[u8], size: u8) -> Vec<u8> {
 #[cfg(not(test))]
 fn main() {
     let input = b"YELLOW SUBMARINE";
-    println!("Input     => {}", input);
-    println!("PKCS#7    => {}", pkcs7(input, 20));
+    println!("Input     => {:?}", input);
+    println!("PKCS#7    => {:?}", pkcs7(input, 20));
 }
 
 /*

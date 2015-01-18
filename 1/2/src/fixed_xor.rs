@@ -31,7 +31,7 @@ fn main() {
     println!("Input         => {}", input);
     let key_bytes = key.from_hex().unwrap();
     let input_bytes = input.from_hex().unwrap();
-    println!("Key bytes     => {}", key_bytes);
+    println!("Key bytes     => {:?}", key_bytes);
     let input_str = str::from_utf8(input_bytes.as_slice()).unwrap();
     println!("Input bytes   => {}", input_str);
     let output = xor_buffers(input_bytes.as_slice(), key_bytes.as_slice());

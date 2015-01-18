@@ -51,8 +51,8 @@ impl Decryptor {
         encrypt_aes_ecb(data.as_slice(), self.key.as_slice())
     }
 
-    fn guess_block_size(&self) -> Option<uint> {
-        static MAX_KEY_SIZE: uint = 256;
+    fn guess_block_size(&self) -> Option<usize> {
+        static MAX_KEY_SIZE: usize = 256;
         let data: Vec<u8> = repeat(0u8).take(MAX_KEY_SIZE - 1).collect();
         let mut prev = self.encrypt(data.slice_to(1));
         for len in range(1, MAX_KEY_SIZE) {
@@ -65,7 +65,7 @@ impl Decryptor {
         None
     }
 
-    fn guess_aes_mode(&self, block_size: uint) -> Mode {
+    fn guess_aes_mode(&self, block_size: usize) -> Mode {
         let s: Vec<u8> = repeat(0u8).take(block_size * 2).collect();
         let e = self.encrypt(s.as_slice());
         match e.slice_to(block_size) == e.slice(block_size, block_size * 2) {
@@ -74,7 +74,7 @@ impl Decryptor {
         }
     }
 
-    fn make_dict(&self, block_size: uint) -> Dict {
+    fn make_dict(&self, block_size: usize) -> Dict {
         let mut input: Vec<u8> = repeat(0u8).take(block_size).collect();
         range(0, 255).map(|c| {
             *input.last_mut().unwrap() = c;
@@ -83,7 +83,7 @@ impl Decryptor {
         }).collect()
     }
 
-    fn decrypt(&self, block_size: uint) -> Vec<u8> {
+    fn decrypt(&self, block_size: usize) -> Vec<u8> {
         let dict = self.make_dict(block_size);
         let mut input: Vec<u8> = repeat(0u8).take(block_size).collect();
         self.unknown.iter().map(|&c| {
@@ -94,7 +94,7 @@ impl Decryptor {
     }
 }
 
-fn random_bytes(len: uint) -> Vec<u8> {
+fn random_bytes(len: usize) -> Vec<u8> {
     range(0, len).map(|_| random::<u8>()).collect()
 }
 
@@ -110,7 +110,7 @@ fn main() {
     let block_size = decryptor.guess_block_size().unwrap();
     println!("Block size: {}", block_size);
     let mode = decryptor.guess_aes_mode(block_size);
-    println!("AES mode: {}", mode);
+    println!("AES mode: {:?}", mode);
     let dec = decryptor.decrypt(block_size);
     println!("Text: {}", String::from_utf8(dec).unwrap());
 }

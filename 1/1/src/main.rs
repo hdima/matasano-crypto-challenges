@@ -3,8 +3,7 @@
  * Dmitry Vasiliev <dima@hlabs.org>
  */
 
-extern crate serialize;
-extern crate collections;
+extern crate "rustc-serialize" as serialize;
 
 use serialize::hex::{FromHex, ToHex};
 use serialize::base64::{STANDARD, FromBase64, ToBase64};
@@ -37,18 +36,16 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
  */
 #[cfg(not(test))]
 fn main() {
-    use collections::str;
-
     let hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120\
                706f69736f6e6f7573206d757368726f6f6d";
     println!("Hex     => {}", hex);
     let bytes = hex_to_bytes(hex);
-    println!("Bytes   => {}", str::from_utf8(bytes.as_slice()).unwrap());
     let base64 = bytes_to_base64(bytes.as_slice());
+    println!("Bytes   => {}", String::from_utf8(bytes).unwrap());
     println!("Base64  => {}", base64);
     let bytes2 = base64_to_bytes(base64.as_slice());
-    println!("Bytes 2 => {}", str::from_utf8(bytes2.as_slice()).unwrap());
     let hex2 = bytes_to_hex(bytes2.as_slice());
+    println!("Bytes 2 => {}", String::from_utf8(bytes2).unwrap());
     println!("Hex 2   => {}", hex2);
 }
 

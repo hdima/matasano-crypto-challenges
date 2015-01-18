@@ -1,0 +1,9 @@
+[package]
+
+name = "hex_base64"
+version = "0.0.1"
+authors = ["Dmitry Vasiliev <dima@hlabs.org>"]
+
+[dependencies]
+
+rustc-serialize = "0.2"

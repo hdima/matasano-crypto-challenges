@@ -1,14 +1,10 @@
-NAME=hex_base64
-RUSTC=rustc
+build:
+	cargo build
 
-${NAME}: src/${NAME}.rs ${LIB}
-	${RUSTC} $<
-
-test: src/${NAME}.rs ${LIB}
-	${RUSTC} --test -o $@ $<
-	./$@
+test:
+	cargo test
 
 clean:
-	rm -f test ${NAME}
+	cargo clean
 
-.PHONY: test clean
+.PHONY: build test clean
